@@ -1,0 +1,137 @@
+@page "/vste_ing"
+@attribute [Authorize(Roles = "Administrator, VSTE_ING")]
+
+@using Radzen
+@using Microsoft.EntityFrameworkCore
+@using HomeControlBlazor.Models
+@using HomeControlBlazor.Services
+@using HomeControlBlazor.Shared
+
+@inject NotificationService NotificationService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRutime
+@inject NavigationManager MyNavigationManager
+
+@using System.IO
+
+<h3>VSTE ING data storage</h3>
+
+<h4 class=".rz-background-color-danger"><strong>!!! jakékoliv sdílení těchto dat se zakazuje !!!</strong></h4>
+
+<div class="container-fluid">
+    <div class="row my-5">
+        <div class="col-lg-8 offset-lg-2">
+            <RadzenCard>
+                <RadzenTree Data=@entries Expand=@LoadFiles Style="width: 100%; height: 100%" Change=@OnChange @bind-Value=@selection>
+                    <RadzenTreeLevel Text=@GetTextForNode Template=@FileOrFolderTemplate />
+                </RadzenTree>
+            </RadzenCard>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    IEnumerable<string> entries;
+    object selection;
+
+    protected override void OnInitialized()
+    {
+        var xx = Directory.GetCurrentDirectory();
+        string newDirectory = string.Format("{0}\\{1}", xx, "wwwroot\\VSTE_data_Ing");
+
+        entries = Directory.GetDirectories(newDirectory)
+                           .Where(entry =>
+                           {
+                               var name = Path.GetFileName(entry);
+                               return !name.StartsWith(".");
+                           });
+    }
+
+    public async Task OnChange()
+    {
+        Checkpath check1 = GetInfo(selection.ToString());
+        if (check1.type == Filetype.File)
+        {
+            string VSTEFolderAndFile = selection.ToString().Substring(selection.ToString().IndexOf("VSTE_data_Ing")).Replace(@"\", @"/");
+            var xx = Directory.GetCurrentDirectory();
+            string serverPath = "https://www.bemalan.cz/home/";
+            string newDirectory = string.Format("{0}//{1}", serverPath, VSTEFolderAndFile);
+
+            await JSRutime.InvokeVoidAsync("open", newDirectory, "_blank");
+        }
+    }
+
+    void ShowNotification(NotificationMessage message)
+    {
+        NotificationService.Notify(message);
+    }
+
+    void LoadFiles(TreeExpandEventArgs args)
+    {
+        var directory = args.Value as string;
+
+        args.Children.Data = Directory.EnumerateFileSystemEntries(directory);
+        args.Children.Text = GetTextForNode;
+        args.Children.HasChildren = (path) => Directory.Exists((string)path);
+        args.Children.Template = FileOrFolderTemplate;
+    }
+
+    string GetTextForNode(object data)
+    {
+        return Path.GetFileName((string)data);
+    }
+
+    RenderFragment<RadzenTreeItem> FileOrFolderTemplate = (context) => builder =>
+    {
+        string path = context.Value as string;
+        bool isDirectory = Directory.Exists(path);
+
+        builder.OpenComponent<RadzenIcon>(0);
+        builder.AddAttribute(1, nameof(RadzenIcon.Icon), isDirectory ? "folder" : "insert_drive_file");
+        builder.CloseComponent();
+        builder.AddContent(3, context.Text);
+    };
+
+    static Checkpath GetInfo(string path)
+    {
+        Checkpath checkpath = new Checkpath();
+        try
+        {
+            FileAttributes attr = File.GetAttributes(path);
+
+            if ((attr & FileAttributes.Directory) == FileAttributes.Directory)
+                checkpath.type = Filetype.Dir;
+            else
+                checkpath.type = Filetype.File;
+            checkpath.Ifexists = true;
+        }
+        catch
+        {
+            bool t = Path.HasExtension(path);
+            if (t)
+            {
+                checkpath.type = Filetype.File;
+            }
+            else
+            {
+                checkpath.type = Filetype.Dir;
+            }
+
+            checkpath.Ifexists = false;
+        }
+        return checkpath;
+    }
+
+    public class Checkpath
+    {
+        public bool Ifexists { get; set; }
+        public Filetype type { get; set; }
+    }
+
+    public enum Filetype
+    {
+        File = 0,
+        Dir = 1
+    }
+}

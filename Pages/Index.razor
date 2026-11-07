@@ -1,4 +1,5 @@
 ﻿@page "/"
+@page "/home"
 
 @using Radzen
 @using Microsoft.EntityFrameworkCore
@@ -19,6 +20,9 @@
 <AuthorizeView>
     <Authorized>
         <h1>Welcome @context.User.Identity.Name</h1>
+        <p>Role: @(context.User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role)?.Value ?? "NO ROLE")</p>
+        <p>IsInRole VSTE: @context.User.IsInRole("VSTE")</p>
+        <p>IsInRole VSTE_ING: @context.User.IsInRole("VSTE_ING")</p>
        <br />
         <RadzenButton Click=@(args => OnClick("Primary button")) Text="Load public data" ButtonStyle="ButtonStyle.Primary" />
     </Authorized>

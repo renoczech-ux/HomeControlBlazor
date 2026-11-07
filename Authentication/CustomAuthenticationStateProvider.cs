@@ -48,7 +48,7 @@ namespace HomeControlBlazor.Authentication
                 {
                     new Claim(ClaimTypes.Name, userSession.UserName),
                     new Claim(ClaimTypes.Role, userSession.Role)
-                }));
+                }, "CustomAuth"));
             }
             else
             {
