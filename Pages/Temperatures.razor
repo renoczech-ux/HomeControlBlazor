@@ -1,0 +1,399 @@
+﻿@page "/temperatures"
+@attribute [Authorize(Roles = "Administrator")]
+
+@using Radzen
+@using HomeControlBlazor.Models
+@using HomeControlBlazor.Services
+
+@inject ITemperatureService ITemperatureService
+@inject NotificationService NotificationService
+@inject TooltipService tooltipService
+@inject DialogService DialogService
+
+@if (colTemperatures == null)
+{
+    <div class="rz-m-12">
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    </div>
+
+}
+else
+{
+    <h4>Teploty AKU</h4>
+    <h6>Last update: @lastUpdateTemp.ToString("dd.MM. HH:mm:ss")</h6>
+    <RadzenStack Orientation="Orientation.Horizontal" Wrap="FlexWrap.Wrap" JustifyContent="JustifyContent.Center" Class="rz-shadow-5 shadows rz-p-12" Gap="1rem">
+
+        @* <RadzenRow class="rz-text-align-center" Gap="1rem">*@
+        <RadzenColumn Size="12" SizeXS="11" SizeSM="10" SizeMD="9" SizeLG="8" SizeXL="7" SizeXX="6" class="rz-p-5">
+            <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+                <h4>horní část</h4>
+            </RadzenRow>
+            <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+                <h4>@valueAKUTOP °C</h4>
+            </RadzenRow>
+            <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+                <h6>@lastUpdateTempAKUTOP.ToString("dd.MM. HH:mm:ss")</h6>
+            </RadzenRow>
+            <RadzenRadialGauge Style="width: 100%; height:400px;">
+                <RadzenRadialGaugeScale StartAngle="-150" EndAngle="150" Step="5" Min="0" Max="110" TickPosition=GaugeTickPosition.Outside>
+                    <RadzenRadialGaugeScalePointer Value=@valueAKUTOP Length="0.6" ShowValue=@showValue>
+                        <Template Context="pointer">
+                            <h1>
+                                @pointer.Value °C
+                            </h1>
+                        </Template>
+                    </RadzenRadialGaugeScalePointer>
+                    <RadzenRadialGaugeScaleRange From="0" To="25" Fill="blue" />
+                    <RadzenRadialGaugeScaleRange From="25" To="85" Fill="orange" />
+                    <RadzenRadialGaugeScaleRange From="85" To="110" Fill="red" />
+                </RadzenRadialGaugeScale>
+            </RadzenRadialGauge>
+        </RadzenColumn>
+
+        <RadzenColumn Size="12" SizeXS="11" SizeSM="10" SizeMD="9" SizeLG="8" SizeXL="7" SizeXX="6" class="rz-p-5">
+            <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+                <h4>prostřední část</h4>
+            </RadzenRow>
+            <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+                <h4>@valueAKUMiddle °C</h4>
+            </RadzenRow>
+            <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+                <h6>@lastUpdateTempAKUMiddle.ToString("dd.MM. HH:mm:ss")</h6>
+            </RadzenRow>
+            <RadzenRadialGauge Style="width: 100%; height:400px;">
+                <RadzenRadialGaugeScale StartAngle="-150" EndAngle="150" Step="5" Min="0" Max="110" TickPosition=GaugeTickPosition.Outside>
+                    <RadzenRadialGaugeScalePointer Value=@valueAKUMiddle Length="0.6" ShowValue=@showValue>
+                        <Template Context="pointer">
+                            <h1>
+                                @pointer.Value °C
+                            </h1>
+                        </Template>
+                    </RadzenRadialGaugeScalePointer>
+                    <RadzenRadialGaugeScaleRange From="0" To="25" Fill="blue" />
+                    <RadzenRadialGaugeScaleRange From="25" To="85" Fill="orange" />
+                    <RadzenRadialGaugeScaleRange From="85" To="110" Fill="red" />
+                </RadzenRadialGaugeScale>
+            </RadzenRadialGauge>
+        </RadzenColumn>
+
+        <RadzenColumn Size="12" SizeXS="11" SizeSM="10" SizeMD="9" SizeLG="8" SizeXL="7" SizeXX="6" class="rz-p-5">
+            <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+                <h4>spodní část</h4>
+            </RadzenRow>
+            <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+                <h4>@valueAKUBottom °C</h4>
+            </RadzenRow>
+            <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+                <h6>@lastUpdateTempAKUBottom.ToString("dd.MM. HH:mm:ss")</h6>
+            </RadzenRow>
+            <RadzenRadialGauge Style="width: 100%; height:400px;">
+                <RadzenRadialGaugeScale StartAngle="-150" EndAngle="150" Step="5" Min="0" Max="110" TickPosition=GaugeTickPosition.Outside>
+                    <RadzenRadialGaugeScalePointer Value=@valueAKUBottom Length="0.6" ShowValue=@showValue>
+                        <Template Context="pointer">
+                            <h1>
+                                @pointer.Value °C
+                            </h1>
+                        </Template>
+                    </RadzenRadialGaugeScalePointer>
+                    <RadzenRadialGaugeScaleRange From="0" To="25" Fill="blue" />
+                    <RadzenRadialGaugeScaleRange From="25" To="85" Fill="orange" />
+                    <RadzenRadialGaugeScaleRange From="85" To="110" Fill="red" />
+                </RadzenRadialGaugeScale>
+            </RadzenRadialGauge>
+        </RadzenColumn>
+
+    </RadzenStack>
+    <br />
+    @*<h3>Teploty AKU</h3>
+
+    <div class="container">
+    <div class="row">
+    <div class="col-sm-12 my-5">
+    <RadzenChart>
+        <RadzenStack Orientation="Orientation.Horizontal" Wrap="FlexWrap.Wrap" JustifyContent="JustifyContent.SpaceAround" Class="rz-shadow-5 shadows rz-p-12" Gap="1rem">
+            <RadzenRow JustifyContent="JustifyContent.SpaceAround" AlignItems="AlignItems.Center" Gap="1rem">
+                <RadzenCard class="w-100 mb-4" Style="display: flex; align-items: center; gap: 0.5rem">
+                    <RadzenColumn class="rz-p-5">
+                        <RadzenCheckBox @bind-Value="@showDataLabelAKUTop" Name="dataLabelsAKUTop"></RadzenCheckBox>
+                        <RadzenLabel Text="data AKU top" For="dataLabelsAKUTop" />
+                    </RadzenColumn>
+                    <RadzenColumn class="rz-p-5">
+                        <RadzenCheckBox @bind-Value="@showDataLabelAKUMiddle" Name="dataLabelsAKUMiddle"></RadzenCheckBox>
+                        <RadzenLabel Text="data AKU middle" For="dataLabelsAKUMiddle" />
+
+                    </RadzenColumn>
+                    <RadzenColumn class="rz-p-5">
+                        <RadzenCheckBox @bind-Value="@showDataLabelAKUBottom" Name="dataLabelsAKUBottom"></RadzenCheckBox>
+                        <RadzenLabel Text="data AKU bottom" For="dataLabelsAKUBottom" />
+                    </RadzenColumn>
+                </RadzenCard>
+            </RadzenRow>
+
+                <RadzenCard class="w-100 mb-4" Style="display: flex; align-items: center; gap: 0.5rem">
+                <RadzenRow JustifyContent="JustifyContent.SpaceAround" AlignItems="AlignItems.Center" Gap="1rem">
+                    <RadzenColumn class="rz-p-5">
+                        <RadzenText TextStyle="TextStyle.H6">Filtr:</RadzenText>
+                    </RadzenColumn>
+                    <RadzenColumn class="rz-p-5">
+                        <RadzenDatePicker @bind-Value=@selectedDay ShowTime="true" ShowSeconds="false" HoursStep="1" MinutesStep="15" SecondsStep="10" DateFormat="dd.MM.yyyy HH:mm" Name="DatePickerWithTime" />
+                        @*<RadzenDatePicker TValue="DateTime?" Value=@selectedDay DateFormat="dd.MM.yyyy">
+                    <FooterTemplate>
+                    <RadzenButton Click=@(args => selectedDay = DateTime.Now) Text="Today" class="my-3 w-100" />
+                    </FooterTemplate>
+                    </RadzenDatePicker>
+                    </RadzenColumn>
+                    <RadzenColumn class="rz-p-5">
+                        <RadzenText TextStyle="TextStyle.H6">Čas.úsek:</RadzenText>
+                    </RadzenColumn>
+                    <RadzenColumn class="rz-p-5">
+                        <RadzenNumeric @bind-Value=@TimeRange InputAttributes="@(new Dictionary<string,object>(){ { "aria-label", "-hod" }})" />
+                    </RadzenColumn>
+                    <RadzenColumn class="rz-p-5">
+                        <RadzenText TextStyle="TextStyle.H6">Interval:</RadzenText>
+                    </RadzenColumn>
+                    <RadzenColumn class="rz-p-5">
+                        <RadzenNumeric @bind-Value=@IntervalHours InputAttributes="@(new Dictionary<string,object>(){ { "aria-label", "min" }})" />
+                    </RadzenColumn>
+                    <RadzenColumn class="rz-p-5">
+                        <RadzenButton Click=@(args => OnClick()) Text="Zobrazit" ButtonStyle="ButtonStyle.Primary" />
+                    </RadzenColumn>
+
+            </RadzenRow>
+             <RadzenRow JustifyContent="JustifyContent.SpaceAround" AlignItems="AlignItems.Center" Gap="1rem">
+
+                    <RadzenLineSeries Smooth="true" Data="@colTemperaturesHistory" CategoryProperty="LastUpdate" Title="AKU top" ValueProperty="AKUTop" RenderingOrder="1">
+                        <RadzenSeriesDataLabels Visible="@showDataLabelAKUTop" />
+                    </RadzenLineSeries>
+                    <RadzenLineSeries Smooth="true" Data="@colTemperaturesHistory" CategoryProperty="LastUpdate" Title="AKU middle" ValueProperty="AKUMiddle" RenderingOrder="1">
+                        <RadzenSeriesDataLabels Visible="@showDataLabelAKUMiddle" />
+                    </RadzenLineSeries>
+                    <RadzenLineSeries Smooth="true" Data="@colTemperaturesHistory" CategoryProperty="LastUpdate" Title="AKU bottom" ValueProperty="AKUBottom" RenderingOrder="1">
+                        <RadzenSeriesDataLabels Visible="@showDataLabelAKUBottom" />
+                    </RadzenLineSeries>
+                    <RadzenCategoryAxis Step="1" FormatString="{0:HH:mm}">
+                        <RadzenGridLines Visible="true" />
+                        <RadzenAxisTitle Text="Hodina" />
+                    </RadzenCategoryAxis>
+                    <RadzenValueAxis Visible="true" Step="5">
+                        <RadzenGridLines Visible="true" />
+                        <RadzenAxisTitle Text="Teplota (°C)" />
+                    </RadzenValueAxis>
+               </RadzenRow>
+               </RadzenCard>
+        </RadzenStack>
+    </RadzenChart>
+       </div>
+    </div>
+    </div>*@
+    @* ------------------------------------------------------------------- *@
+    @*
+    <RadzenCard class="w-100 mb-4" Style="display: flex; align-items: center; gap: 0.5rem">
+         <RadzenStack Orientation="Orientation.Horizontal" Wrap="FlexWrap.Wrap" JustifyContent="JustifyContent.SpaceAround" Class="rz-shadow-5 shadows rz-p-12" Gap="1rem">
+           <RadzenRow>
+                 <RadzenCard class="rz-background-color-primary-light rz-shadow-0 rz-border-radius-0 rz-p-8" style="margin: 1rem calc(-1 * var(--rz-card-padding));">
+                <h4>Teploty AKU - historický vývoj</h4>
+                     </RadzenCard>
+            </RadzenRow>
+            <RadzenRow>
+                <RadzenColumn Size="12" SizeXS="11" SizeSM="10" SizeMD="9" SizeLG="8" SizeXL="7" SizeXX="6" class="rz-p-5">
+                    <RadzenCheckBox @bind-Value="@showDataLabelAKUTop" Name="dataLabelsAKUTop"></RadzenCheckBox>
+                    <RadzenLabel Text="data AKU top" For="dataLabelsAKUTop" />
+                </RadzenColumn>
+                 <RadzenColumn Size="12" SizeXS="11" SizeSM="10" SizeMD="9" SizeLG="8" SizeXL="7" SizeXX="6" class="rz-p-5">
+                    <RadzenCheckBox @bind-Value="@showDataLabelAKUMiddle" Name="dataLabelsAKUMiddle"></RadzenCheckBox>
+                    <RadzenLabel Text="data AKU middle" For="dataLabelsAKUMiddle" />
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeXS="11" SizeSM="10" SizeMD="9" SizeLG="8" SizeXL="7" SizeXX="6" class="rz-p-5">
+                    <RadzenCheckBox @bind-Value="@showDataLabelAKUBottom" Name="dataLabelsAKUBottom"></RadzenCheckBox>
+                    <RadzenLabel Text="data AKU bottom" For="dataLabelsAKUBottom" />
+                </RadzenColumn>
+            </RadzenRow>
+            <RadzenRow>
+                <RadzenChart style="width: 100%">
+                    <RadzenLineSeries Smooth="true" Data="@colTemperaturesHistory" CategoryProperty="LastUpdate" Title="AKU top" ValueProperty="AKUTop" RenderingOrder="1">
+                        <RadzenSeriesDataLabels Visible="@showDataLabelAKUTop" />
+                    </RadzenLineSeries>
+                    <RadzenLineSeries Smooth="true" Data="@colTemperaturesHistory" CategoryProperty="LastUpdate" Title="AKU middle" ValueProperty="AKUMiddle" RenderingOrder="1">
+                        <RadzenSeriesDataLabels Visible="@showDataLabelAKUMiddle" />
+                    </RadzenLineSeries>
+                    <RadzenLineSeries Smooth="true" Data="@colTemperaturesHistory" CategoryProperty="LastUpdate" Title="AKU bottom" ValueProperty="AKUBottom" RenderingOrder="1">
+                        <RadzenSeriesDataLabels Visible="@showDataLabelAKUBottom" />
+                    </RadzenLineSeries>
+                    <RadzenCategoryAxis Step="1" FormatString="{0:HH:mm}">
+                        <RadzenGridLines Visible="true" />
+                        <RadzenAxisTitle Text="Hodina" />
+                    </RadzenCategoryAxis>
+                    <RadzenValueAxis Visible="true" Step="5">
+                        <RadzenGridLines Visible="true" />
+                        <RadzenAxisTitle Text="Teplota (°C)" />
+                    </RadzenValueAxis>
+                </RadzenChart>
+            </RadzenRow>
+            </RadzenStack>
+          
+             <RadzenCard class="rz-background-color-primary-light rz-shadow-0 rz-border-radius-0 rz-p-8" style="margin: 1rem calc(-1 * var(--rz-card-padding));">
+            <RadzenRow>
+                <RadzenColumn class="rz-p-5">
+                    <RadzenCheckBox @bind-Value="@showDataLabelAKUTop" Name="dataLabelsAKUTop"></RadzenCheckBox>
+                    <RadzenLabel Text="data AKU top" For="dataLabelsAKUTop" />
+                </RadzenColumn>
+                <RadzenColumn class="rz-p-5">
+                    <RadzenCheckBox @bind-Value="@showDataLabelAKUMiddle" Name="dataLabelsAKUMiddle"></RadzenCheckBox>
+                    <RadzenLabel Text="data AKU middle" For="dataLabelsAKUMiddle" />
+                </RadzenColumn>
+                <RadzenColumn class="rz-p-5">
+                    <RadzenCheckBox @bind-Value="@showDataLabelAKUBottom" Name="dataLabelsAKUBottom"></RadzenCheckBox>
+                    <RadzenLabel Text="data AKU bottom" For="dataLabelsAKUBottom" />
+                </RadzenColumn>
+            </RadzenRow>
+            </RadzenCard>
+             <RadzenCard class="rz-background-color-primary-light rz-shadow-0 rz-border-radius-0 rz-p-8" style="margin: 1rem calc(-1 * var(--rz-card-padding));">
+            <RadzenRow>
+                <RadzenColumn class="rz-p-5">
+                    <RadzenText TextStyle="TextStyle.H6">Filtr:</RadzenText>
+                </RadzenColumn>
+                <RadzenColumn class="rz-p-5">
+                    <RadzenDatePicker @bind-Value=@selectedDay ShowTime="true" ShowSeconds="false" HoursStep="1" MinutesStep="15" SecondsStep="10" DateFormat="dd.MM.yyyy HH:mm" Name="DatePickerWithTime" />
+                </RadzenColumn>
+                <RadzenColumn class="rz-p-5">
+                    <RadzenText TextStyle="TextStyle.H6">Čas.úsek:</RadzenText>
+                </RadzenColumn>
+                <RadzenColumn class="rz-p-5">
+                    <RadzenNumeric @bind-Value=@TimeRange InputAttributes="@(new Dictionary<string,object>(){ { "aria-label", "-hod" }})" />
+                </RadzenColumn>
+                <RadzenColumn class="rz-p-5">
+                    <RadzenText TextStyle="TextStyle.H6">Interval:</RadzenText>
+                </RadzenColumn>
+                <RadzenColumn class="rz-p-5">
+                    <RadzenNumeric @bind-Value=@IntervalHours InputAttributes="@(new Dictionary<string,object>(){ { "aria-label", "min" }})" />
+                </RadzenColumn>
+                <RadzenColumn class="rz-p-5">
+                    <RadzenButton Click=@(args => OnClick()) Text="Zobrazit" ButtonStyle="ButtonStyle.Primary" />
+                </RadzenColumn>
+            </RadzenRow>
+    </RadzenCard>
+    
+    </RadzenCard>*@
+
+
+    <RadzenCard class="w-100 mb-4">
+        <RadzenStack Orientation="Orientation.Vertical" Gap="10" Reverse="false" JustifyContent="JustifyContent.SpaceEvenly" AlignItems="AlignItems.Normal" Wrap="FlexWrap.NoWrap" >
+            <RadzenCard class="p-1">
+                <RadzenRow JustifyContent="JustifyContent.Center">
+                     <h4>Teploty AKU - historický vývoj</h4>
+           </RadzenRow>
+                 <RadzenRow>
+                <RadzenColumn class="rz-p-5">
+                    <RadzenCheckBox @bind-Value="@showDataLabelAKUTop" Name="dataLabelsAKUTop"></RadzenCheckBox>
+                    <RadzenLabel Text="data AKU top" For="dataLabelsAKUTop" />
+                </RadzenColumn>
+                <RadzenColumn class="rz-p-5">
+                    <RadzenCheckBox @bind-Value="@showDataLabelAKUMiddle" Name="dataLabelsAKUMiddle"></RadzenCheckBox>
+                    <RadzenLabel Text="data AKU middle" For="dataLabelsAKUMiddle" />
+                </RadzenColumn>
+                <RadzenColumn class="rz-p-5">
+                    <RadzenCheckBox @bind-Value="@showDataLabelAKUBottom" Name="dataLabelsAKUBottom"></RadzenCheckBox>
+                    <RadzenLabel Text="data AKU bottom" For="dataLabelsAKUBottom" />
+                </RadzenColumn>
+                    
+                    <RadzenColumn class="rz-p-5">
+                        <RadzenCheckBox @bind-Value="@showDataLabelTemp" Name="showDataLabelTemp"></RadzenCheckBox>
+                        <RadzenLabel Text="hodnoty temp" For="showDataLabelTemp" />
+                    </RadzenColumn>
+                </RadzenRow>
+           
+                <RadzenRow>
+                <RadzenColumn class="rz-p-5">
+                    <RadzenText TextStyle="TextStyle.H6">Filtr:</RadzenText>
+                </RadzenColumn>
+                <RadzenColumn class="rz-p-5">
+                    <RadzenDatePicker @bind-Value=@selectedDay ShowTime="true" ShowSeconds="false" HoursStep="1" MinutesStep="15" SecondsStep="10" DateFormat="dd.MM.yyyy HH:mm" Name="DatePickerWithTime" />
+                </RadzenColumn>
+                <RadzenColumn class="rz-p-5">
+                    <RadzenText TextStyle="TextStyle.H6">Čas.úsek:</RadzenText>
+                </RadzenColumn>
+                <RadzenColumn class="rz-p-5">
+                    <RadzenNumeric @bind-Value=@TimeRange InputAttributes="@(new Dictionary<string,object>(){ { "aria-label", "-hod" }})" />
+                </RadzenColumn>
+                <RadzenColumn class="rz-p-5">
+                    <RadzenText TextStyle="TextStyle.H6">Interval:</RadzenText>
+                </RadzenColumn>
+                <RadzenColumn class="rz-p-5">
+                    <RadzenNumeric @bind-Value=@IntervalHours InputAttributes="@(new Dictionary<string,object>(){ { "aria-label", "min" }})" />
+                </RadzenColumn>
+                <RadzenColumn class="rz-p-5">
+                    <RadzenButton Click=@(args => OnClick()) Text="Zobrazit" ButtonStyle="ButtonStyle.Primary" />
+                </RadzenColumn>
+            </RadzenRow>
+           @* </RadzenCard>          
+            <RadzenCard class="p-1 rz-text-align-center">*@
+                  <RadzenRow>
+                <RadzenChart style="width: 100%">
+                    <RadzenLineSeries Smooth="true" Data="@colTemperaturesHistory" CategoryProperty="LastUpdate" Title="AKU top" ValueProperty="AKUTop" RenderingOrder="1">
+                        <RadzenSeriesDataLabels Visible="@showDataLabelAKUTop" />
+                    </RadzenLineSeries>
+                    <RadzenLineSeries Smooth="true" Data="@colTemperaturesHistory" CategoryProperty="LastUpdate" Title="AKU middle" ValueProperty="AKUMiddle" RenderingOrder="1">
+                        <RadzenSeriesDataLabels Visible="@showDataLabelAKUMiddle" />
+                    </RadzenLineSeries>
+                    <RadzenLineSeries Smooth="true" Data="@colTemperaturesHistory" CategoryProperty="LastUpdate" Title="AKU bottom" ValueProperty="AKUBottom" RenderingOrder="1">
+                        <RadzenSeriesDataLabels Visible="@showDataLabelAKUBottom" />
+                    </RadzenLineSeries>
+                    <RadzenCategoryAxis Step="1" FormatString="{0:HH:mm}">
+                        <RadzenGridLines Visible="true" />
+                        <RadzenAxisTitle Text="Hodina" />
+                    </RadzenCategoryAxis>
+                        <RadzenValueAxis Visible="true" Step="5">
+                        <RadzenGridLines Visible="true" />
+                        <RadzenAxisTitle Text=@lblTempAxis />
+                    </RadzenValueAxis>
+                    <RadzenLegend Position="LegendPosition.Bottom" />
+                </RadzenChart>
+                </RadzenRow>
+            </RadzenCard>
+        </RadzenStack>
+    </RadzenCard>
+    <br/>
+}
+
+@code
+{
+    bool showValue = false;
+    bool showDataLabelAKUTop = true, showDataLabelAKUMiddle = true, showDataLabelAKUBottom = true, showDataLabelTemp = true;
+    DateTime lastUpdateTemp = new DateTime(1983, 12, 10);
+    DateTime lastUpdateTempAKUTOP = new DateTime(1983, 12, 10);
+    DateTime lastUpdateTempAKUMiddle = new DateTime(1983, 12, 10);
+    DateTime lastUpdateTempAKUBottom = new DateTime(1983, 12, 10);
+    DateTime selectedDay = DateTime.Now;
+    IEnumerable<TblEquipmentActual> colTemperatures;
+    IEnumerable<AKUTempHistoryModel> colTemperaturesHistory;
+
+    double valueAKUTOP = 0, valueAKUMiddle = 0, valueAKUBottom = 0;
+    int IntervalHours = 30, TimeRange = -12;
+
+    string lblTempAxis = "Teplota (°C)";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        colTemperatures = await ITemperatureService.LoadRec();
+        if (colTemperatures != null)
+        {
+            valueAKUTOP = Convert.ToDouble(colTemperatures.Single(id => id.EquIoTid == 1).EquCurrentTemp);
+            lastUpdateTempAKUTOP = Convert.ToDateTime(colTemperatures.Single(id => id.EquIoTid == 1).EquLastUpdate);
+            valueAKUMiddle = Convert.ToDouble(colTemperatures.Single(id => id.EquIoTid == 2).EquCurrentTemp);
+            lastUpdateTempAKUMiddle = Convert.ToDateTime(colTemperatures.Single(id => id.EquIoTid == 2).EquLastUpdate);
+            valueAKUBottom = Convert.ToDouble(colTemperatures.Single(id => id.EquIoTid == 3).EquCurrentTemp);
+            lastUpdateTempAKUBottom = Convert.ToDateTime(colTemperatures.Single(id => id.EquIoTid == 3).EquLastUpdate);
+
+            lastUpdateTemp = DateTime.Now;
+        }
+
+        colTemperaturesHistory = await ITemperatureService.LoadAKUTempHistory(DateTime.Now, TimeRange, IntervalHours);
+    }
+
+    private async Task OnClick()
+    {
+        colTemperaturesHistory = await ITemperatureService.LoadAKUTempHistory(selectedDay, TimeRange, IntervalHours);
+    }
+}

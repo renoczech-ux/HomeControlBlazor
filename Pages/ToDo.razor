@@ -1,0 +1,132 @@
+﻿@page "/todo"
+@attribute [Authorize(Roles = "Administrator")]
+
+@using Radzen
+@using HomeControlBlazor.Models
+@using HomeControlBlazor.Services
+
+@inject IToDoService ITodo
+@inject NotificationService NotificationService
+@inject TooltipService tooltipService
+@inject DialogService DialogService
+
+@if (colToDos == null)
+{
+    <div class="rz-m-12">
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    </div>
+
+}
+else
+{
+
+    <RadzenDataGrid @ref="ordersGrid" AllowFiltering="true" FilterPopupRenderMode="PopupRenderMode.OnDemand" AllowPaging="true" PageSize="5" AllowSorting="true"
+                Data="@colToDos" TItem="TblToDo">
+        <Columns>
+            <RadzenDataGridColumn Width="50px" TItem="TblToDo" Title="ID" Filterable="false" Sortable="false" TextAlign="TextAlign.Center" Property="TdoId" />
+            <RadzenDataGridColumn TItem="TblToDo" Property="TdoName" Title="Nazev" />
+            @*<RadzenDataGridColumn TItem="TblToDo" Property="TdoDescription" Title="Popis" />*@
+            <RadzenDataGridColumn TItem="TblToDo" Property="TdoStatus" Title="Status">
+                <Template Context="todo">
+                    @Enum.GetName(typeof(Status), todo.TdoStatus)
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="TblToDo" Property="TdoCategory" Title="Kategorie">
+                <Template Context="todo">
+                    @Enum.GetName(typeof(Category), todo.TdoCategory)
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="TblToDo" Property="TdoPriority" Title="Priorita">
+                <Template Context="todo">
+                    @Enum.GetName(typeof(TaskPriority), todo.TdoPriority)
+                </Template>
+            </RadzenDataGridColumn>
+            @* <RadzenDataGridColumn TItem="Order" Property="OrderDate" Title="Order Date" FormatString="{0:d}" />
+        <RadzenDataGridColumn TItem="Order" Property="Freight" Title="Freight">
+        <Template Context="order">
+        @String.Format(new System.Globalization.CultureInfo("en-US"), "{0:C}", order.Freight)
+        </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="TblToDo" Property="ShipCountry" Title="ShipCountry" />*@
+            <RadzenDataGridColumn Width="160px" TItem="TblToDo" Property="TdoId" Title="Detaily">
+                <Template Context="data">
+                    <RadzenButton ButtonStyle="ButtonStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter" Icon="info" class="m-1" Click=@(() => OpenOrder(data.TdoId, data.TdoName)) Text="Detaily" />
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+}
+
+@code
+{
+    RadzenDataGrid<TblToDo> ordersGrid;
+    IEnumerable<TblToDo> colToDos = new List<TblToDo>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try{
+            await base.OnInitializedAsync();
+
+            colToDos = await ITodo.LoadRec();
+            if (colToDos != null)
+            {
+
+            }
+        }
+        catch(Exception ex)
+        {
+            ShowNotification(new NotificationMessage
+            {
+                // Style = "position: absolute; left: -1000px;",
+                Severity = NotificationSeverity.Error,
+                Summary = "Systemova chyba",
+                Detail = ex.Message,
+                Duration = 50000
+            });
+        }
+        // colTemperaturesHistory = await ITemperatureService.LoadAKUTempHistory(DateTime.Now, TimeRange, IntervalHours);
+    }
+
+    void ShowNotification(NotificationMessage message)
+    {
+        NotificationService.Notify(message);
+
+        //console.Log($"{message.Severity} notification");
+    }
+
+    private void OpenOrder2(int ID)
+    {
+        return;
+    }
+
+
+    async Task OpenOrder(int orderId, string ToDoName)
+    {
+        await DialogService.OpenAsync<DialogCardPage>($"Task: {ToDoName}",
+              new Dictionary<string, object>() { { "ID", orderId } },
+              new DialogOptions() { Width = "700px" }); // Height = "520px"
+      
+    }
+
+    public enum Status
+    {
+        novy,
+        v_reseni,
+        hotovo
+    }
+
+    public enum TaskPriority
+    {
+        nizka,
+        stredni,
+        vysoka
+    }
+
+    public enum Category
+    {
+        barak,
+        zahrada,
+        garaz,
+        auta
+    }
+}

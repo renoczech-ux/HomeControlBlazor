@@ -1,0 +1,165 @@
+﻿@inject AuthenticationStateProvider AuthStateProvider
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">BeMaLAN</a>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        @* <div class="nav-item px-3">
+        <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+        <span class="oi oi-home" aria-hidden="true"></span> Home
+        </NavLink>
+        </div>
+        <div class="nav-item px-3">
+        <NavLink class="nav-link" href="counter">
+        <span class="oi oi-plus" aria-hidden="true"></span> Counter
+        </NavLink>
+        </div>*@
+        <AuthorizeView>
+            <NotAuthorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="login">
+                        <span class="oi oi-list-rich" aria-hidden="true"></span> Login
+                    </NavLink>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
+        <AuthorizeView Roles="Administrator, tatka">
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="tatka">
+                        <span class="oi oi-list-rich" aria-hidden="true"></span> taťka
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="Hyundai">
+                <span class="oi oi-list-rich" aria-hidden="true"></span> Hyundai
+            </NavLink>
+        </div>
+        <AuthorizeView Roles="Administrator">
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="VWMultivan">
+                        <span class="oi oi-list-rich" aria-hidden="true"></span> VW Multivan
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+        <AuthorizeView Roles="Administrator, VSTE">
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="vste">
+                        <span class="oi oi-list-rich" aria-hidden="true"></span> VSTE
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+         <AuthorizeView Roles="Administrator, VSE">
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="vse">
+                        <span class="oi oi-list-rich" aria-hidden="true"></span> VSE
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+         <AuthorizeView Roles="Administrator, Pavla">
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="singlePrivatedata">
+                        <span class="oi oi-list-rich" aria-hidden="true"></span> Private upload
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="otev2">
+                <span class="oi oi-list-rich" aria-hidden="true"></span> OTE
+            </NavLink>
+        </div>
+        <AuthorizeView Roles="Administrator">
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="electricity">
+                        <span class="oi oi-list-rich" aria-hidden="true"></span> Elektrika
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="fve">
+                        <span class="oi oi-list-rich" aria-hidden="true"></span> FVE
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="temperatures">
+                        <span class="oi oi-list-rich" aria-hidden="true"></span> Teploty
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="weatherforecast">
+                        <span class="oi oi-list-rich" aria-hidden="true"></span> Pocasi
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="todo">
+                        <span class="oi oi-list-rich" aria-hidden="true"></span> ToDo
+                    </NavLink>
+                </div
+                 <div class="nav-item px-3">
+            <NavLink class="nav-link" href="ChatGPT">
+                <span class="oi oi-list-rich" aria-hidden="true"></span> GPT
+            </NavLink>
+        </div>
+            </Authorized>
+        </AuthorizeView>
+
+       @*  <div class="nav-item px-3">
+            <NavLink class="nav-link" href="countdown">
+                <span class="oi oi-list-rich" aria-hidden="true"></span> VSTE countdown
+            </NavLink>
+        </div> *@
+         <div class="nav-item px-3">
+            <NavLink class="nav-link" href="electricityproviders">
+                <span class="oi oi-list-rich" aria-hidden="true"></span> CZ elektrika 
+            </NavLink>
+        </div>
+       
+
+        @* <div class="nav-item px-3">
+        <NavLink class="nav-link" href="temperatures">
+        <span class="oi oi-list-rich" aria-hidden="true"></span> Teploty
+        </NavLink>
+        </div>*@
+
+          <div class="nav-item px-3">
+            <NavLink class="nav-link" href="videoplayer">
+                <span class="oi oi-list-rich" aria-hidden="true"></span> Nerdi sobe 
+            </NavLink>
+        </div>
+    </nav>
+</div>
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+    private bool isAuthenticated = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthStateProvider.GetAuthenticationStateAsync()).User;
+        isAuthenticated = user.Identity.IsAuthenticated;
+    }
+}

@@ -1,0 +1,58 @@
+﻿@inherits LayoutComponentBase
+@using Radzen.Blazor
+﻿@using HomeControlBlazor.Authentication
+@inject AuthenticationStateProvider authStateProvider
+@inject NavigationManager navManager
+
+<RadzenComponents />
+
+<PageTitle>BeMaLAN</PageTitle>
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+        <RadzenDialog />
+        <RadzenNotification />
+        <RadzenContextMenu />
+        <RadzenTooltip />
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            @*<a href="https://docs.microsoft.com/aspnet/" target="_blank">Login</a>*@
+            <AuthorizeView>
+                <Authorized>
+                    <NavLink class="nav-link" @onclick="Logout">
+                        <span class="oi oi-account-logout" aria-hidden="true"></span> Logout
+                        @*<a @onclick="Logout" href="javascript:void(0)">Logout</a>*@
+                    </NavLink>
+                </Authorized>
+                <NotAuthorized>
+                    <NavLink class="nav-link" href="login">
+                        <span class="oi oi-account-login" aria-hidden="true"></span> Login
+                    </NavLink>
+                </NotAuthorized>
+            </AuthorizeView>
+
+        </div>
+
+        @* <div class="nav-item px-3">
+        <NavLink class="nav-link" href="electricity">
+        <span class="oi oi-list-rich" aria-hidden="true"></span> Elektrika
+        </NavLink>
+        </div>*@
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code {
+    private async Task Logout()
+    {
+        var customAuthStateProvider = (CustomAuthenticationStateProvider)authStateProvider;
+        await customAuthStateProvider.UpdateAuthenticationState(null);
+        navManager.NavigateTo("/home", true);
+    }
+}

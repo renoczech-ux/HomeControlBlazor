@@ -1,0 +1,99 @@
+﻿@*<h3>TatkaVideoPlayer</h3>*@
+@using Radzen.Blazor.Rendering
+@using HomeControlBlazor.Models;
+@* @using ModraMaringotka.Models; *@
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+
+@* 
+<RadzenTemplateForm TItem="TblAppointment" Submit=@OnSubmit>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Text" />
+        </div>
+        <div class="col">
+            <RadzenTextBox @bind-Value="@model.RsvSubject" Name="Text" />
+            <RadzenRequiredValidator Text="Title is required" Component="Text" />
+        </div>
+    </div>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Datum od:" />
+        </div>
+        <div class="col">
+            <RadzenDatePicker @bind-Value="@model.RsvStart" Name="Start" ShowTime="true" />
+            <RadzenRequiredValidator Text="Start is required" Component="Start" />
+        </div>
+    </div>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Datum do:" />
+        </div>
+        <div class="col">
+            <RadzenDatePicker Name="End" @bind-Value="@model.RsvEnd" ShowTime="true" />
+            <RadzenRequiredValidator Component="End" Text="End is required" />
+        </div>
+    </div>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Email:" />
+        </div>
+        <div class="col">
+            <RadzenTextBox @Value="@email" Name="Text" />
+        </div>
+    </div>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Email:" />
+        </div>
+        <div class="col">
+            <RadzenTextBox @Value="@description" Name="Text" />
+            <RadzenRequiredValidator Text="Title is required" Component="Text" />
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-3"></div>
+        <div class="col">
+            <RadzenButton ButtonType="ButtonType.Submit" Text="Save" />
+        </div>
+    </div>
+</RadzenTemplateForm>
+ *@
+@code {
+    [Parameter]
+    public DateTime From { get; set; }
+
+    [Parameter]
+    public DateTime To { get; set; }
+
+    //Appointment model = new Appointment();
+   // TblAppointment model = new TblAppointment();
+
+    string email = string.Empty;
+    string description = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        // model.RsvStart = From;
+        // model.RsvEnd = To;
+        // model.RsvSubject = "Nová rezervace ID: ";
+        //model.RsvDescription = description;
+
+        //model.Data = modelData;
+        //model.Start = Start;
+        //model.End = End;
+    }
+
+    // void OnSubmit(TblAppointment model)
+    // {
+    //     if (IsValidEmail(email))
+    //     {
+    //         DialogService.Close(model);
+    //     }
+    //     else if (email == string.Empty)
+    //     {
+    //         ShowNotification(new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "Neplatný email", Detail = "Nebyl zadan kontaktní email. Nemáme Vás jak kontaktovat se zpětnou vazbou.", Duration = 10000 });
+    //     }
+    // }
+
+}

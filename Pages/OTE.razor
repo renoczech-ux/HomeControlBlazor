@@ -1,0 +1,324 @@
+﻿@page "/ote"
+
+@using Radzen
+@using Microsoft.EntityFrameworkCore
+@using HomeControlBlazor.Models
+@using HomeControlBlazor.Services
+@using System.Globalization
+
+@inject NotificationService NotificationService
+@inject TooltipService tooltipService
+@inject IOTEService OTEService
+
+<h3>OTE</h3>
+
+@inject DialogService DialogService
+
+@if (colOTEPricing != null)
+{
+    <RadzenButton Click=@(args => OnClick("Primary button")) Text="Nacist" ButtonStyle="ButtonStyle.Primary" />
+
+    <div class="rz-p-12 rz-text-align-center">
+        @* <RadzenDatePicker TValue="DateTime?" ShowTime="false"  Value=@value />
+    <RadzenDatePicker TValue="DateTime" ShowTime="false"  DateFormat="dd.MM.yyyy"  Value=@value/>*@
+        <RadzenDatePicker @bind-Value=@value DateFormat="dd.MM.yyyy">
+            <FooterTemplate>
+                <RadzenButton Click=@(args => value = DateTime.Now) Text="Today" class="my-3 w-100" />
+            </FooterTemplate>
+        </RadzenDatePicker>
+    </div>
+
+    <div Class="rz-p-0 rz-p-md-12">
+        <RadzenChart>
+            <RadzenColumnSeries Data="@colOTEPricing" CategoryProperty="OteHour" ValueProperty="OtePrice">
+                <RadzenSeriesDataLabels Visible="true" />
+            </RadzenColumnSeries>
+            <RadzenColumnOptions Radius="5" Width="15" />
+            <RadzenCategoryAxis Min="1" Max="24" Step="1" Padding="10">
+               
+                <RadzenGridLines Visible="true" />
+                <RadzenAxisTitle Text="hodina" />
+            </RadzenCategoryAxis>
+            <RadzenValueAxis Min="0" Step="500">
+                <RadzenGridLines Visible="true" />
+                <RadzenAxisTitle Text="Kč/MWh" />
+            </RadzenValueAxis>
+            <RadzenLegend Visible="false" />
+        </RadzenChart>
+    </div>
+
+    <div Class="rz-p-0 rz-p-md-12">
+        <RadzenChart>
+            <RadzenColumnSeries Data="@colOTEPricing" CategoryProperty="OteInterval" ValueProperty="OtePriceInterval">
+                <RadzenSeriesDataLabels Visible="false" />
+            </RadzenColumnSeries>
+            <RadzenColumnOptions Radius="1" Width="5" Margin="5"/>
+            <RadzenCategoryAxis Min="0" Max="95" Step="1" Padding="40"
+                                LabelAutoRotation="-90">
+                <RadzenGridLines Visible="true" />
+                <RadzenAxisTitle Text="interval" />
+            </RadzenCategoryAxis>
+            <RadzenValueAxis Min="0" Step="500">
+                <RadzenGridLines Visible="true" />
+                <RadzenAxisTitle Text="Kč/MWh" />
+            </RadzenValueAxis>
+            <RadzenLegend Visible="false" />
+        </RadzenChart>
+    </div>
+
+
+    <div class="container my-5">
+        <div class="row">
+            <div class="col">
+                <RadzenCard class="w-100 mb-4" Style="display: flex; align-items: center; gap: 0.5rem">
+                    <RadzenCheckBox @bind-Value="@trend" Name="trend"></RadzenCheckBox>
+                    <RadzenLabel Text="Trend" For="trend" Style="margin-right: 1rem;" class="rz-color-danger-dark" />
+                    @* <RadzenCheckBox @bind-Value="@median" Name="median"></RadzenCheckBox>
+                <RadzenLabel Text="Median" For="median" Style="margin-right: 1rem;" class="rz-color-success-dark" />*@
+                    <RadzenCheckBox @bind-Value="@mean" Name="mean"></RadzenCheckBox>
+                    <RadzenLabel Text="Prumer" For="mean" Style="margin-right: 1rem;" class="rz-color-info-dark" />
+                    @*<RadzenCheckBox @bind-Value="@mode" Name="mode"></RadzenCheckBox>
+                <RadzenLabel Text="Mode" For="mode" class="rz-color-warning-darker" />*@
+                </RadzenCard>
+                <RadzenChart>
+                    <RadzenLineSeries Smooth="true" Data="@colOTEPricing" CategoryProperty="OteHour" Title="Cena EUR" ValueProperty="OtePrice" RenderingOrder="1">
+                        <RadzenSeriesDataLabels Visible="@showDataLabels" />
+                        <RadzenMarkers MarkerType="MarkerType.Square" />
+                    </RadzenLineSeries>
+                    @*// cena CZK*@
+                    @*  <RadzenLineSeries Smooth="true" Data="@colOTEPricing" CategoryProperty="OteHour" Title="Cena BD CZK" ValueProperty="@valueCZK" RenderingOrder="1">
+                <RadzenSeriesMeanLine Visible="@mean" Stroke="var(--rz-info-dark)" LineType="LineType.Dotted" />
+                <RadzenSeriesDataLabels Visible="@showDataLabels" />
+                <RadzenMarkers MarkerType="MarkerType.Circle" />
+                <RadzenCategoryAxis Padding="1" Min="0" Max="24" Step="1">
+                <RadzenGridLines Visible="true" />
+                <RadzenAxisTitle Text="hodina" />
+                </RadzenCategoryAxis>
+                <RadzenValueAxis>
+                <RadzenGridLines Visible="true" />
+                <RadzenAxisTitle Text="Cena" />
+                </RadzenValueAxis>
+                </RadzenLineSeries>*@
+                    @*// cena CZK bezDodavatele*@
+                    <RadzenLineSeries Smooth="true" Data="@colOTEPricing" CategoryProperty="OteHour" Title="Cena BD CZK" ValueProperty="OtePriceMWh" RenderingOrder="1">
+                        <RadzenSeriesMeanLine Visible="@mean" Stroke="var(--rz-info-dark)" LineType="LineType.Dotted" />
+                        <RadzenSeriesDataLabels Visible="@showDataLabels" />
+                        <RadzenMarkers MarkerType="MarkerType.Circle" />
+                        <RadzenCategoryAxis Padding="1" Min="0" Max="24" Step="1">
+                            <RadzenGridLines Visible="true" />
+                            <RadzenAxisTitle Text="hodina" />
+                        </RadzenCategoryAxis>
+                        <RadzenValueAxis>
+                            <RadzenGridLines Visible="true" />
+                            <RadzenAxisTitle Text="Cena" />
+                        </RadzenValueAxis>
+                    </RadzenLineSeries>
+                    <RadzenLegend Visible="true" Position="LegendPosition.Bottom" />
+                </RadzenChart>
+            </div>
+        </div>
+    </div>
+
+
+    <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="24" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                Data="@colOTEPricing" TItem="OTEPricing" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or">
+        <Columns>
+            <RadzenDataGridColumn TItem="OTEPricing" Property="OteDate" Filterable="false" Title="Den" Frozen="true" Width="auto" TextAlign="TextAlign.Center">
+                <Template>
+                    @{
+                        var value = (context as OTEPricing);
+                        DateTime date = value.OteDate;
+                        <div>@date.ToString("dd.MM.yyyy")</div>
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="OTEPricing" Property="OteHour" Filterable="false" Title="Hodina" Frozen="true" Width="auto" TextAlign="TextAlign.Center" />
+            <RadzenDataGridColumn TItem="OTEPricing" Property="OtePrice" Filterable="false" Title="Cena EUR" Frozen="true" Width="auto" TextAlign="TextAlign.Center">
+                <Template>
+                    @{
+                        var value = (context as OTEPricing);
+                        decimal finalAmount = Convert.ToDecimal(value.OtePriceInterval);
+                        <div>@finalAmount.ToString("#.##")</div>
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="OTEPricing" Filterable="false" Title="Cena CZK" Frozen="true" Width="auto" TextAlign="TextAlign.Center">
+                <Template>
+                    @{
+                        var value = (context as OTEPricing);
+                        decimal finalAmount = (Convert.ToDecimal(value.OtePriceInterval * value.OteExchangeRate));
+                        <div>@finalAmount.ToString("#.##")</div>
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="OTEPricing" Filterable="false" Title="Cena BD CZK" Frozen="true" Width="auto" TextAlign="TextAlign.Center">
+                <Template>
+                    @{
+                        var value = (context as OTEPricing);
+                        decimal finalAmount = Convert.ToDecimal(value.OtePriceMWh);
+                        <div>@finalAmount.ToString("#.##")</div>
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+            
+
+        </Columns>
+    </RadzenDataGrid>
+
+
+    // verze pro mobily
+    // historie dat
+    <RadzenStack Orientation="Orientation.Vertical" Wrap="FlexWrap.Wrap" JustifyContent="JustifyContent.Center" Class="rz-shadow-5 shadows rz-p-12" Gap="1rem">
+        <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+            <h4>Verze pro mobily</h4>
+        </RadzenRow>
+
+        <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Normal" Gap="1rem">
+            <RadzenDataGrid AllowFiltering="false" AllowColumnResize="false" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="false" PageSize="24" AllowPaging="false" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                        Data="@colOTEPricing" TItem="OTEPricing" ColumnWidth="auto">
+                <Columns>
+                    <RadzenDataGridColumn TItem="OTEPricing" Property="OteDate" Filterable="false" Title="Den" Frozen="true" Width="auto" TextAlign="TextAlign.Center">
+                        <Template>
+                            @{
+                                var value = (context as OTEPricing);
+                                DateTime date = value.OteDate;
+                                <div>@date.ToString("dd.MM.yyyy")</div>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="OTEPricing" Property="OteHour" Filterable="false" Title="Hodina" Frozen="true" Width="auto" TextAlign="TextAlign.Center" />
+                    <RadzenDataGridColumn TItem="OTEPricing" Filterable="false" Title="Cena BD CZK" Frozen="true" Width="auto" TextAlign="TextAlign.Center">
+                        <Template>
+                            @{
+                                var value = (context as OTEPricing);
+                                decimal finalAmount = Convert.ToDecimal(value.OtePriceMWh);
+                                <div>@finalAmount.ToString("#.##")</div>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenRow>
+    </RadzenStack>
+}
+else
+{
+    <div class="rz-m-12">
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    </div>
+}
+
+
+@code {
+
+    // IEnumerable<TblOte> colOTE;
+    bool showDataLabels = true;
+
+    IEnumerable<OTEPricing> colOTEPricing = new List<OTEPricing>();
+
+    //decimal
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        //employees = await OTEService.Get();
+        colOTEPricing = await OTEService.LoadOTEByDate(DateTime.Now);
+        //colOTE = await OTEService.LoadRec();
+        //if (colOTE != null)
+        //{
+        //    foreach (TblOte item in colOTE)
+        //    {
+        //        if (item.OteExchangeRate == null)
+        //        {
+        //            item.OteExchangeRate = colOTEPricing.Single(hour => hour.OteHour == item.OteHour).OteExchangeRate;
+        //        }
+        //        //item.customOTEPriceCZK = (Convert.ToDecimal(item.OtePrice * item.OteExchangeRate))/ 10;
+        //        item.customOTEPriceCZK = colOTEPricing.Single(hour => hour.OteHour == item.OteHour).OtePriceMWh;
+        //    }
+        //}
+
+
+    }
+
+    DateTime value = DateTime.Now;
+
+    bool trend = true;
+    bool median = true;
+    bool mean = true;
+    bool mode = false;
+
+    private async Task OnClick(string text)
+    {
+        //colOTE = await OTEService.LoadRecByDate(value);
+        //if (colOTE !=null)
+        //{
+        //    foreach(TblOte item in colOTE)
+        //    {
+        //        if (item.OteExchangeRate == null)
+        //        {
+        //            item.OteExchangeRate = Convert.ToDecimal("24,5");
+        //        }
+        //        item.customOTEPriceCZK = (Convert.ToDecimal(item.OtePrice * item.OteExchangeRate))/10;
+        //    }
+        //}
+
+        //employees = await OTEService.Get();
+        colOTEPricing = await OTEService.LoadOTEByDate(value);
+        //colOTE = await OTEService.LoadRecByDate(value);
+        //if (colOTE != null)
+        //{
+        //    foreach (TblOte item in colOTE)
+        //    {
+        //        if (item.OteExchangeRate == null)
+        //        {
+        //            item.OteExchangeRate = colOTEPricing.Single(hour => hour.OteHour == item.OteHour).OteExchangeRate;
+        //        }
+        //        //item.customOTEPriceCZK = (Convert.ToDecimal(item.OtePrice * item.OteExchangeRate))/ 10;
+        //        item.customOTEPriceCZK = colOTEPricing.Single(hour => hour.OteHour == item.OteHour).OtePriceMWh;
+        //    }
+        //}
+    }
+
+    class DataItem
+    {
+        public string Date { get; set; }
+        public double Revenue { get; set; }
+    }
+
+    string FormatAsUSD(object value)
+    {
+        return ((double)value).ToString("C0", CultureInfo.CreateSpecificCulture("en-US"));
+    }
+
+    string FormatAsCZK(object value)
+    {
+        return ((double)value).ToString("C0", CultureInfo.CreateSpecificCulture("cs-CZ"));
+    }
+
+    string FormatAsEUR(object value)
+    {
+        return ((double)value).ToString("C0", CultureInfo.CreateSpecificCulture("fr-FR"));
+    }
+
+    string FormatAsMonth(object value)
+    {
+        if (value != null)
+        {
+            return Convert.ToDateTime(value).ToString("MMM");
+        }
+
+        return string.Empty;
+    }
+    string FormatAsHour(object value)
+    {
+        if (value != null)
+        {
+            return Convert.ToDateTime(value).ToString("HH:00");
+        }
+
+        return string.Empty;
+    }
+
+
+}

@@ -1,0 +1,127 @@
+﻿@page "/VWMultivan"
+@attribute [Authorize(Roles = "Administrator")]
+
+@using HomeControlBlazor.Models
+@using HomeControlBlazor.Services
+@inject IImageRespository ImgeRepo
+@inject Radzen.DialogService DialogServices
+
+<h3>VW Multivan</h3>
+
+
+    @if (imageList == null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        @*<RadzenButton Click=@(args => EditSkill("Primary button")) Text="Nacist" ButtonStyle="ButtonStyle.Primary" />*@
+
+        <RadzenStack Orientation="Orientation.Horizontal" Wrap="FlexWrap.Wrap" JustifyContent="JustifyContent.Center" Class="rz-shadow-5 shadows rz-text-align-center rz-p-5" Gap="1rem">
+            @*<div class="row">*@
+            @foreach (var img in imageList)
+            {
+                <div class="col-sm-4">
+                    @*     <a href="http://www.bemalan.cz/home/@img.Path" class="tile purple">
+            <h6 class="title">@img.Name</h6>
+            <img src="@img.ThumbnailPath" style="width:200px;height:200px;">
+            </a>*@
+                    <RadzenButton Click="@((args) => OnClick(args, @img.Path))" ButtonStyle="ButtonStyle.Light" Style="margin-bottom: 20px; width:200px;height:200px;">
+                        <RadzenImage Path="@img.ThumbnailPath" Style="width:100%" />
+                    </RadzenButton>
+                </div>
+            }
+            @* </div>*@
+        </RadzenStack>
+    }
+
+
+@*<RadzenStack AlignItems="AlignItems.Center" Class="rz-mx-auto rz-my-12">
+
+    <RadzenImage Path="Images/Img1.jpg" Style="width: 55rem;" />
+
+</RadzenStack>
+
+<RadzenStack AlignItems="AlignItems.Center" Class="rz-mx-auto rz-my-12">
+
+    <RadzenImage Path="Images/Img2.jpg" Style="width: 55rem;" />
+
+</RadzenStack>*@
+
+@code {
+    // <div class="container">
+    private List<ImageModel>? imageList;
+
+    protected override async Task OnInitializedAsync()
+    {
+        imageList = await ImgeRepo.GetImages("Multivan");
+    }
+
+    private async Task OpenDialog(string text)
+    {
+        var parameters = new Dictionary<string, object> { { "ImgURL", "https://example.com/image.jpg" } };
+        // var dialogResult = await DialogService.OpenAsync<ImageViewer>("Image Viewer", parameters);
+    }
+
+    private void OnClick2(EventArgs args, string ImgPath)
+    {
+        DialogServices.Open("Fotogalerie", ds =>
+    @<RadzenStack AlignItems="AlignItems.Center" Class="rz-mx-auto rz-my-12">
+        <RadzenImage Path=@ImgPath Style="width: 100%;" />
+        <RadzenButton Text="Zavřít" Click="() => ds.Close(false)" ButtonStyle="ButtonStyle.Info" CloseDialogOnOverlayClick="true" Draggable="true" />
+    </RadzenStack>
+        );
+    }
+
+    private async Task OnClick(EventArgs args, string ImgPath)
+    {
+        await DialogServices.OpenAsync("Fotogalerie", ds =>
+    @<RadzenStack AlignItems="AlignItems.Center" Class="rz-mx-auto rz-my-12">
+        <RadzenImage Path=@ImgPath Style="width: 100%;" />
+        <RadzenButton Text="Zavřít" Click="() => ds.Close(false)" ButtonStyle="ButtonStyle.Info" CloseDialogOnOverlayClick="true" Draggable="true" />
+    </RadzenStack>);
+
+        // Class="mr-1"
+
+        // await DialogService.OpenAsync<ImageViewer>("Zobraz img",  Dictionary<string, object> { { "imgURL", text } });
+        // await DialogService.OpenAsync<ImageViewer>("Zobraz img",    new Dictionary<string, object>() { { "Ordine", text } }, new DialogOptions() { Width = "90%", Height = "95%", Resizable = false, Draggable = false });
+
+        //await DialogService.OpenAsync<ImageViewer>($"Actions", options: new SideDialogOptions { CloseDialogOnOverlayClick = closeDialogOnOverlayClick, Position = position, ShowMask = showMask });
+
+        //colOTE = await OTEService.LoadRecByDate(value);
+        //if (colOTE != null)
+        //{
+        //    foreach (TblOte item in colOTE)
+        //    {
+        //        if (item.OteExchangeRate == null)
+        //        {
+        //            item.OteExchangeRate = Convert.ToDecimal("24,5");
+        //        }
+        //        item.customOTEPriceCZK = Convert.ToDecimal(item.OtePrice * item.OteExchangeRate);
+        //    }
+        //}
+    }
+
+    async Task EditSkill(string text)
+    {
+        await DialogServices.OpenAsync("Edit Skill", ds =>
+    //@<RadzenCard>
+        //  <div>
+        //    <p class="mb-4">Skill ID <b>1</b></p>
+            //    <div class="row">
+            //        <div class="col">
+            //            <RadzenButton Text="Ok" Click="() => ds.Close(true)" Class="mr-1"
+            //                Style="width: 80px;" />
+            //            <RadzenButton Text="Cancel" Click="() => ds.Close(false)"
+            //                ButtonStyle="ButtonStyle.Secondary" Class="mr-1" />
+            //        </div>
+            //    </div>
+            //</div>
+            //</RadzenCard>);
+
+    @<RadzenStack AlignItems="AlignItems.Center" Class="rz-mx-auto rz-my-12">
+        <RadzenImage Path="https://www.bemalan.cz/home/images/Multivan/01.jpg" Style="width: 100%;" />
+        <RadzenButton Text="Zavřít" Click="() => ds.Close(false)" ButtonStyle="ButtonStyle.Secondary" Class="mr-1" />
+    </RadzenStack>);
+    }
+}

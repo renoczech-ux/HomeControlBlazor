@@ -1,0 +1,83 @@
+﻿@page "/ChatGPT"
+@attribute [Authorize(Roles = "Administrator")]
+
+@using Radzen
+@using HomeControlBlazor.Models
+@using HomeControlBlazor.Services
+
+@inject IChatGPTService IChatGptService
+@inject NotificationService NotificationService
+@inject TooltipService tooltipService
+@inject DialogService DialogService
+
+<h3>ChatGPT</h3>
+<div class="rz-m-12">
+    <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" Visible="@showProgressBar" />
+</div>
+<RadzenStack Orientation="Orientation.Vertical" Wrap="FlexWrap.Wrap" Class="rz-shadow-5 shadows rz-p-12" Gap="1rem">
+
+    <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Zadejte váš dotaz:</RadzenText>
+
+    <RadzenTextArea Placeholder="Jak vam dneska mohu pomoci..." Change=@(args => OnChange(args, "Zadejte váš dotaz:")) class="w-100" aria-label="TextArea with placeholder" />
+
+
+    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem">
+        <RadzenButton Click=@(args => Ask()) Text="Ask" ButtonStyle="ButtonStyle.Primary" />
+    </RadzenStack>
+    <RadzenStack Orientation="Orientation.Vertical" Wrap="FlexWrap.Wrap" Gap="1rem">
+        <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Odpoved</RadzenText>
+    </RadzenStack>
+    <RadzenStack Orientation="Orientation.Vertical" Wrap="FlexWrap.Wrap" JustifyContent="JustifyContent.Stretch" Gap="1rem">
+        <RadzenTextArea Disabled="true" @bind-Value=@strAnswer />
+    </RadzenStack>
+</RadzenStack>
+@*<RadzenButton Click=@(args => Ask()) Text="Ask" ButtonStyle="ButtonStyle.Primary" />*@
+
+@code
+{
+    string strQuestion, strAnswer;
+    bool showProgressBar = false;
+
+    void OnChange(string value, string name)
+    {
+        //console.Log($"{name} value changed to {value}");
+        strQuestion = value;
+        NotificationMessage msg = new NotificationMessage { Severity = NotificationSeverity.Info, Summary = "User:", Detail = strQuestion, Duration = 5000 };
+        ShowNotification(msg);
+    }
+
+    private async Task Ask()
+    {
+        showProgressBar = true;
+        string timeString = DateTime.Now.ToString("HH:mm:ss");
+        string str = String.Format("{0} ({1}):\r\n{2}\r\n", "User", timeString, strQuestion);
+        strAnswer += str;
+        //var question = "What is the weather like today?";
+        string Answer = await IChatGptService.GetCompletionAsync(strQuestion);
+        timeString = DateTime.Now.ToString("HH:mm:ss");
+        str = String.Format("{0} ({1}):\r\n{2}\r\n\r\n", "GPT", timeString, Answer);
+         
+        strAnswer += str;
+        //Console.WriteLine("Response from ChatGPT: " + response);
+        showProgressBar = false;
+    }
+
+    void ShowNotification(NotificationMessage message)
+    {
+        NotificationService.Notify(message);
+
+        //console.Log($"{message.Severity} notification");
+    }
+
+    public async Task AddTest(string User, string text)
+    {
+
+       
+
+        // Use the + and += operators for one-time concatenations.
+       
+
+
+       
+    }
+}

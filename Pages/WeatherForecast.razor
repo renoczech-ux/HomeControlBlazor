@@ -1,0 +1,136 @@
+﻿@page "/weatherforecast"
+
+@using Radzen
+@using HomeControlBlazor.Models
+@using HomeControlBlazor.Services
+
+@inject NotificationService NotificationService
+@inject TooltipService tooltipService
+@inject IWeatherService IWeatherService
+@inject DialogService DialogService
+
+@if (colWeatherForecast == null)
+{
+    <div class="rz-m-12">
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    </div>
+
+}
+else
+{
+    <h3>Počasí</h3>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-sm-12 my-5">
+
+                <RadzenChart>
+                    <RadzenLineSeries Smooth="true" Data="@colWeatherForecast" CategoryProperty="WfcDate" Title="temp" ValueProperty="WfcTempValue" RenderingOrder="1">
+                        @*  <RadzenSeriesTrendLine Visible="@trend" Stroke="var(--rz-danger-dark)" LineType="LineType.Dashed" />
+                    <RadzenSeriesMedianLine Visible="@median" Stroke="var(--rz-success-dark)" LineType="LineType.Dotted" />
+                    <RadzenSeriesMeanLine Visible="@mean" Stroke="var(--rz-info-dark)" LineType="LineType.Dotted" />
+                    <RadzenSeriesModeLine Visible="@mode" Stroke="var(--rz-warning-darker)" LineType="LineType.Dotted" />*@
+                        <RadzenSeriesDataLabels Visible="true" />
+                    </RadzenLineSeries>
+                    @*<RadzenSeriesDataLabels Visible="true" />*@
+                    <RadzenCategoryAxis Step="1" FormatString="{0:dd.MM. HH:00}">
+                        <RadzenGridLines Visible="true" />
+                        <RadzenAxisTitle Text="Hodina" />
+                       @* <RadzenTicks>
+                            <Template>
+                                @context.Value
+                                <text class="rz-tick-text" style="text-anchor: start; transform: translate(@(context.X)px, @(context.Y + 10)px) rotate(10deg)">@context.Value</text>
+                            </Template>
+                        </RadzenTicks>*@
+                    </RadzenCategoryAxis>
+                    @*
+                @{
+                var value = (context as TblWeatherForecast);
+                @value.WfcHour
+                }
+                @* @{
+                var value = (context as TblWeatherForecast);
+                DateTime date = value.WfcDate;
+                <div>@date.Hour.ToString()</div>
+                }
+                @*<text class="rz-tick-text" style="text-anchor: start; transform: translate(@(context.X)px, @(context.Y + 10)px) rotate(90deg)">@context.Value.ToString("HH:mm")</text>
+                </Template>
+                </RadzenTicks>
+                </RadzenCategoryAxis>*@
+                    <RadzenValueAxis Visible="true" Step="1">
+                        <RadzenGridLines Visible="true" />
+                        <RadzenAxisTitle Text="Teplota (°C)" />
+                    </RadzenValueAxis>
+                </RadzenChart>
+            </div>
+        </div>
+    </div>
+    //Padding="10" Max="24" Step="1"
+
+    // historie dat
+    <RadzenStack Orientation="Orientation.Vertical" Wrap="FlexWrap.Wrap" JustifyContent="JustifyContent.Center" Class="rz-shadow-5 shadows rz-p-12" Gap="1rem">
+        <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+            <h4>Historie dat</h4>
+        </RadzenRow>
+
+        <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Normal" Gap="1rem">
+            <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="24" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                        Data="@colWeatherForecast" TItem="TblWeatherForecast" ColumnWidth="auto" LogicalFilterOperator="LogicalFilterOperator.Or" Order>
+                <Columns>
+                    <RadzenDataGridColumn TItem="TblWeatherForecast" Property="WfcDate" Filterable="false" Title="Den" Frozen="true" Width="auto" TextAlign="TextAlign.Center">
+                        <Template>
+                            @{
+                                var value = (context as TblWeatherForecast);
+                                DateTime date = value.WfcDate;
+                                <div>@date.ToString("dd.MM.yyyy")</div>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="TblWeatherForecast" Property="WfcHour" Filterable="false" Title="Hodina" Frozen="true" Width="auto" TextAlign="TextAlign .Center" />
+                    <RadzenDataGridColumn TItem="TblWeatherForecast" Property="WfcTempValue" Filterable="false" Title="Teplota" Frozen="true" Width="auto" TextAlign="TextAlign.Center" />
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenRow>
+    </RadzenStack>
+}
+
+@code {
+    IEnumerable<TblWeatherForecast> colWeatherForecast;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try{
+            await base.OnInitializedAsync();
+
+            colWeatherForecast = await IWeatherService.LoadRec();
+
+            if (colWeatherForecast != null)
+            {
+                foreach (TblWeatherForecast item in colWeatherForecast)
+                {
+                    DateTime newDate = new DateTime(item.WfcDate.Year, item.WfcDate.Month, item.WfcDate.Day, item.WfcHour, 00, 00);
+                    colWeatherForecast.Single(id => id.WfcId == item.WfcId).WfcDate = newDate;
+                }
+            }
+        }
+        catch(Exception ex)
+        {
+            ShowNotification(new NotificationMessage
+            {
+                // Style = "position: absolute; left: -1000px;",
+                Severity = NotificationSeverity.Error,
+                Summary = "Systemova chyba",
+                Detail = ex.Message,
+                Duration = 50000
+            });
+           
+        }
+
+        void ShowNotification(NotificationMessage message)
+        {
+            NotificationService.Notify(message);
+
+            //console.Log($"{message.Severity} notification");
+        }
+    }
+}

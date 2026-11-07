@@ -1,0 +1,200 @@
+﻿@page "/videoplayer"
+@inject IJSRuntime JS
+@inject IWebHostEnvironment Environment
+@implements IAsyncDisposable
+
+<PageTitle>Video přehrávač</PageTitle>
+
+<RadzenStack Gap="1rem">
+    <RadzenText TextStyle="TextStyle.H3">Video přehrávač</RadzenText>
+    
+    <RadzenCard>
+        <RadzenStack Gap="0.5rem">
+            <RadzenText TextStyle="TextStyle.H5">Dostupná videa:</RadzenText>
+            
+            <RadzenDropDown @bind-Value="@selectedVideo" 
+                           Data="@videos" 
+                           TextProperty="Name"
+                           ValueProperty="Path"
+                           Change="@OnVideoSelected"
+                           Placeholder="Vyberte video..."
+                           Style="width: 100%; max-width: 400px;" />
+        </RadzenStack>
+    </RadzenCard>
+
+    @if (!string.IsNullOrEmpty(selectedVideo))
+    {
+        <RadzenCard>
+            <video id="videoPlayer" 
+                   class="video-js vjs-default-skin" 
+                   controls 
+                   preload="auto" 
+                   width="800" 
+                   height="450">
+                <source src="@selectedVideo" type="@GetMimeType(selectedVideo)">
+                Váš prohlížeč nepodporuje přehrávání videa.
+            </video>
+        </RadzenCard>
+
+        <RadzenCard>
+            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem">
+                <RadzenButton Text="Předchozí" 
+                             Click="@PlayPrevious" 
+                             Disabled="@(!HasPrevious())"
+                             ButtonStyle="ButtonStyle.Secondary" />
+                <RadzenButton Text="Další" 
+                             Click="@PlayNext" 
+                             Disabled="@(!HasNext())"
+                             ButtonStyle="ButtonStyle.Secondary" />
+            </RadzenStack>
+        </RadzenCard>
+    }
+</RadzenStack>
+
+@code {
+    private string selectedVideo = "";
+    private List<VideoFile> videos = new();
+    private IJSObjectReference? jsModule;
+    private bool isPlayerInitialized = false;
+
+    public class VideoFile
+    {
+        public string Name { get; set; } = "";
+        public string Path { get; set; } = "";
+    }
+
+    protected override void OnInitialized()
+    {
+        var videoPath = Path.Combine(Environment.WebRootPath, "video");
+        
+        if (Directory.Exists(videoPath))
+        {
+            var videoExtensions = new[] { ".mp4", ".avi", ".webm", ".mkv", ".mov" };
+            
+            var files = Directory.GetFiles(videoPath)
+                .Where(f => videoExtensions.Contains(Path.GetExtension(f).ToLower()))
+                .Select(f => new VideoFile
+                {
+                    Name = Path.GetFileName(f),
+                    Path = $"/video/{Path.GetFileName(f)}"
+                })
+                .OrderBy(v => v.Name)
+                .ToList();
+            
+            videos = files;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!string.IsNullOrEmpty(selectedVideo) && !isPlayerInitialized)
+        {
+            try
+            {
+                await Task.Delay(100); // Počkej, než se DOM vykreslí
+                
+                await JS.InvokeVoidAsync("eval", @"
+                    (function() {
+                        if (typeof videojs !== 'undefined') {
+                            var player = document.getElementById('videoPlayer');
+                            if (player && !player.classList.contains('vjs-initialized')) {
+                                window.videoPlayer = videojs('videoPlayer');
+                            }
+                        }
+                    })();
+                ");
+                
+                isPlayerInitialized = true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Chyba při inicializaci přehrávače: {ex.Message}");
+            }
+        }
+    }
+
+    private string GetMimeType(string filePath)
+    {
+        var extension = Path.GetExtension(filePath).ToLower();
+        return extension switch
+        {
+            ".mp4" => "video/mp4",
+            ".webm" => "video/webm",
+            ".avi" => "video/x-msvideo",
+            ".mkv" => "video/x-matroska",
+            ".mov" => "video/quicktime",
+            _ => "video/mp4"
+        };
+    }
+
+    private async Task OnVideoSelected(object value)
+    {
+        selectedVideo = value?.ToString() ?? "";
+        isPlayerInitialized = false;
+        
+        // Znovu inicializuj player
+        await Task.Delay(100);
+        StateHasChanged();
+    }
+
+    private bool HasPrevious()
+    {
+        if (string.IsNullOrEmpty(selectedVideo) || !videos.Any())
+            return false;
+        return videos.FindIndex(v => v.Path == selectedVideo) > 0;
+    }
+
+    private bool HasNext()
+    {
+        if (string.IsNullOrEmpty(selectedVideo) || !videos.Any())
+            return false;
+        var index = videos.FindIndex(v => v.Path == selectedVideo);
+        return index >= 0 && index < videos.Count - 1;
+    }
+
+    private async Task PlayPrevious()
+    {
+        var index = videos.FindIndex(v => v.Path == selectedVideo);
+        if (index > 0)
+        {
+            await DisposePlayer();
+            selectedVideo = videos[index - 1].Path;
+            isPlayerInitialized = false;
+        }
+    }
+
+    private async Task PlayNext()
+    {
+        var index = videos.FindIndex(v => v.Path == selectedVideo);
+        if (index >= 0 && index < videos.Count - 1)
+        {
+            await DisposePlayer();
+            selectedVideo = videos[index + 1].Path;
+            isPlayerInitialized = false;
+        }
+    }
+
+    private async Task DisposePlayer()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("eval", @"
+                if (window.videoPlayer && typeof window.videoPlayer.dispose === 'function') {
+                    window.videoPlayer.dispose();
+                    window.videoPlayer = null;
+                }
+            ");
+        }
+        catch { /* Ignoruj chyby při dispose */ }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await DisposePlayer();
+        
+        if (jsModule is not null)
+        {
+            await jsModule.DisposeAsync();
+        }
+    }
+}

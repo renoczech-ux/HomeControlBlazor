@@ -1,0 +1,50 @@
+## .NET ##
+bin/
+obj/
+*.user
+*.userosscache
+*.suo
+*.cache
+*.log
+
+## Visual Studio ##
+.vs/
+*.rsuser
+*.sln.docstates
+
+## Build results ##
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+build/
+bld/
+
+## NuGet ##
+*.nupkg
+**/packages/*
+
+## Windows ##
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+## Large media files ##
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.m4a
+*.mp3
+*.wav
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.pdf
+wwwroot/images/
+wwwroot/video/
+wwwroot/soundfiles/
+wwwroot/VSTE_data/
+wwwroot/VSE_data/

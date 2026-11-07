@@ -1,0 +1,349 @@
+﻿@page "/electricityproviders"
+
+@using Radzen
+@using Microsoft.EntityFrameworkCore
+@using HomeControlBlazor.Models
+@using HomeControlBlazor.Services
+@using System.Globalization
+
+@inject NotificationService NotificationService
+@inject TooltipService tooltipService
+@inject IElectricityService ElectricityService
+@inject DialogService DialogService
+
+<h3>Porovnani dodavatelu elektriny</h3>
+
+<RadzenCard class="p-0">
+    <RadzenStack Orientation="@orientation" Gap="@gap" Reverse="@reverse" JustifyContent="@justifyContent" AlignItems="@alignItems" Wrap="@wrap">
+        <RadzenCard class="p-1 rz-text-align-center">
+            <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">
+                Distribuční území:
+                <RadzenDropDown TValue="string" @bind-Value=@DistributionProvider Data=@arrDistributionProviders />
+            </RadzenText>
+        </RadzenCard>
+        <RadzenCard class="p-1 rz-text-align-center">
+            <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">
+                Distribuční sazba(tarif):
+                <RadzenDropDown TValue="string" @bind-Value=@DistributionTarif Data=@arrDistributionTarif />
+            </RadzenText>
+        </RadzenCard>
+        <RadzenCard class="p-1 rz-text-align-center">
+            <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">
+                Typ jistice:
+                <RadzenDropDown TValue="string" @bind-Value=@ElectricityBreaker Data=@arrBreakerValue />
+            </RadzenText>
+        </RadzenCard>
+        <RadzenCard class="p-1 rz-text-align-center">
+            <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">
+                Rok:
+                @*  <RadzenDropDown TValue="string" @bind-Value=@Year Data=@arrYear  Style="width: 50%" /> *@
+                <RadzenDatePicker @bind-Value=@SelectedDate Name="RadzenDatePickerBindValue" DateFormat="dd.MM.yyyy" ShowCalendarWeek />
+            </RadzenText>
+        </RadzenCard>
+        @*     </RadzenStack>
+        </RadzenCard>
+
+        <RadzenCard class="p-0">
+        <RadzenStack Orientation="@orientation" Gap="@gap" Reverse="@reverse" JustifyContent="@justifyContent" AlignItems="@alignItems" Wrap="@wrap" Style="height: 50px">   class="mb-5" *@
+        <RadzenCard class="p-1 rz-text-align-center">
+            Dodavatel:
+            <RadzenCheckBoxList @bind-Value=@ElectricityProvider TValue="int">
+                <Items>
+                    <RadzenCheckBoxListItem Text="CEZ Prodej" Value="2" />
+                    <RadzenCheckBoxListItem Text="bezDodavatele" Value="1" />
+                    <RadzenCheckBoxListItem Text="Electree" Value="3" />
+                    <RadzenCheckBoxListItem Text="Tedom" Value="4" Disabled=true />
+                </Items>
+            </RadzenCheckBoxList>
+        </RadzenCard>
+        @*  <RadzenCard class="p-1 rz-text-align-center"> *@
+        <RadzenButton Click=@(args => OnClick("Primary button")) Text="Nacist" ButtonStyle="ButtonStyle.Primary" />
+        @*  </RadzenCard> *@
+    </RadzenStack>
+</RadzenCard>
+
+
+@* <div class="rz-p-sm-12 rz-text-align-center">
+    <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">
+        Distribuční území:
+        <RadzenDropDown TValue="string" @bind-Value=@DistributionProvider Data=@arrDistributionProviders Style="width: 50%" />
+    </RadzenText>
+</div>
+<div class="rz-p-sm-12 rz-text-align-center">
+    <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">
+        Distribuční sazba(tarif):
+        <RadzenDropDown TValue="string" @bind-Value=@DistributionTarif Data=@arrDistributionTarif Style="width: 50%" />
+    </RadzenText>
+</div>
+
+<div class="rz-p-sm-12 rz-text-align-center">
+    <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">
+        Typ jistice:
+        <RadzenDropDown TValue="string" @bind-Value=@ElectricityBreaker Data=@arrBreakerValue Style="width: 50%" />
+    </RadzenText>
+</div>
+
+<div class="rz-p-12 rz-text-align-center">
+    <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">
+        Rok:
+         <RadzenDropDown TValue="string" @bind-Value=@Year Data=@arrYear  Style="width: 50%" />
+        <RadzenDatePicker @bind-Value=@SelectedDate Name="RadzenDatePickerBindValue" ShowCalendarWeek />
+    </RadzenText>
+</div>
+
+<div class="rz-p-12 rz-text-align-center">
+    <RadzenCheckBoxList @bind-Value=@ElectricityProvider TValue="int" class="mb-5">
+        <Items>
+            <RadzenCheckBoxListItem Text="CEZ Prodej" Value="2" />
+            <RadzenCheckBoxListItem Text="bezDodavatele" Value="1" />
+            <RadzenCheckBoxListItem Text="Electree" Value="3" />
+            <RadzenCheckBoxListItem Text="Tedom" Value="4" Disabled=true />
+        </Items>
+    </RadzenCheckBoxList>
+
+</div>
+<RadzenButton Click=@(args => OnClick("Primary button")) Text="Nacist" ButtonStyle="ButtonStyle.Primary" />
+  *@
+@if (showLoading == true)
+{
+    <div class="rz-m-12">
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    </div>
+
+}
+else
+{
+    <RadzenCard class="p-0">
+        <RadzenStack Orientation="@orientation" Gap="@gap" Reverse="@reverse" JustifyContent="@justifyContent" AlignItems="@alignItems" Wrap="@wrap">
+            @if (showGraph != false)
+            {
+               @*  <div class="container">
+                    <div class="row">
+                        <div class="col-sm-12 my-5"> *@
+                            @*  <RadzenCard class="w-100 mb-4">
+                    <RadzenCheckBox @bind-Value="@showDataLabels" Name="dataLabels"></RadzenCheckBox>
+                    <RadzenLabel Text="Show Data Labels" Component="dataLabels" Style="margin-left: 8px; vertical-align: middle;" />
+                    </RadzenCard>
+                    <h4>Auto-size column series</h4> *@
+                <RadzenChart Style="width: 100%;">
+                                <RadzenColumnSeries Data="@colBezDodavatele" CategoryProperty="OteHour" Title="bezDodavatele" LineType="LineType.Dashed" ValueProperty="OtePriceMWh">
+                                    <RadzenSeriesDataLabels Visible="@showDataLabels" />
+                                </RadzenColumnSeries>
+                                <RadzenColumnSeries Data="@colCEZ" CategoryProperty="OteHour" Title="CEZ" ValueProperty="OtePriceMWh">
+                                    <RadzenSeriesDataLabels Visible="@showDataLabels" />
+                                </RadzenColumnSeries>
+                                <RadzenColumnSeries Data="@colElectree" CategoryProperty="OteHour" Title="Electree" ValueProperty="OtePriceMWh">
+                                    <RadzenSeriesDataLabels Visible="@showDataLabels" />
+                                </RadzenColumnSeries>
+
+                                <RadzenColumnOptions Radius="5" />
+                                <RadzenCategoryAxis Min="1" Max="24" Step="1" Padding="10">
+                                    <RadzenGridLines Visible="true" />
+                                    <RadzenAxisTitle Text="hodina" />
+                                </RadzenCategoryAxis>
+                                <RadzenValueAxis Min="0" Step="500">
+                                    <RadzenGridLines Visible="true" />
+                                    <RadzenAxisTitle Text="Kč/MWh" />
+                                </RadzenValueAxis>
+                                <RadzenLegend Visible="true" />
+                                <RadzenLegend Position="LegendPosition.Bottom" />
+                            </RadzenChart>
+               @*          </div>
+                    </div>
+                </div> *@
+
+
+                <RadzenStack Orientation="Orientation.Vertical" Wrap="FlexWrap.Wrap" JustifyContent="JustifyContent.Center" Class="rz-shadow-5 shadows rz-p-12" Gap="1rem">
+                    <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+                        <h4>Tabulka s cenami</h4>
+                    </RadzenRow>
+                        <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+                        <h6>(v CZK s DPH)</h6>
+                    </RadzenRow>
+
+                    <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Normal" Gap="1rem">
+                        <RadzenDataGrid AllowFiltering="false" AllowColumnResize="false" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="false" PageSize="24" AllowPaging="false" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                                        Data="@colPriceResult" TItem="OTEPricing" ColumnWidth="auto">
+                            <Columns>
+                                @* <RadzenDataGridColumn TItem="OTEPricing" Property="OteDate" Filterable="false" Title="Den" Frozen="true" Width="auto" TextAlign="TextAlign.Center">
+                        <Template>
+                        @{
+                        var value = (context as OTEPricing);
+                        DateTime date = value.OteDate;
+                        <div>@date.ToString("HH:mm")</div>
+                        }
+                        </Template>
+                        </RadzenDataGridColumn> *@
+                                <RadzenDataGridColumn TItem="OTEPricing" Filterable="false" Title="Hodina" Frozen="true" Width="auto" TextAlign="TextAlign.Center">
+                                    <Template>
+                                        @{
+                                            var value = (context as OTEPricing);
+                                            int currHour = value.OteHour;
+                                            int prevHour = value.OteHour - 1;
+                                            <div>@currHour.ToString() (@prevHour.ToString()-@currHour.ToString())</div>
+                                        }
+                                    </Template>
+                                </RadzenDataGridColumn>
+                                @if (colBezDodavatele != null)
+                                {
+                                    @if (colBezDodavatele.Count() > 0)
+                                    {
+                                    <RadzenDataGridColumn TItem="OTEPricing" Filterable="false" Title="bezDodavatele" Frozen="true" Width="auto" TextAlign="TextAlign.Center">
+                                        <Template>
+                                            @{
+                                                var value = (context as OTEPricing);
+                                                decimal finalAmount = Convert.ToDecimal(value.OtePriceMWhbezDodavatele);
+                                                <div>@finalAmount.ToString("#.##")</div>
+                                            }
+                                        </Template>
+                                    </RadzenDataGridColumn>
+                                    }
+                                }
+                                @if (colCEZ.Count() > 0)
+                                {
+                                    <RadzenDataGridColumn TItem="OTEPricing" Filterable="false" Title="CEZ" Frozen="true" Width="auto" TextAlign="TextAlign.Center">
+                                        <Template>
+                                            @{
+                                                var value = (context as OTEPricing);
+                                                decimal finalAmount = Convert.ToDecimal(value.OtePriceMWhCEZ);
+                                                <div>@finalAmount.ToString("#.##")</div>
+                                            }
+                                        </Template>
+                                    </RadzenDataGridColumn>
+                                }
+                                @if (colElectree.Count() > 0)
+                                {
+                                    <RadzenDataGridColumn TItem="OTEPricing" Filterable="false" Title="Electree" Frozen="true" Width="auto" TextAlign="TextAlign.Center">
+                                        <Template>
+                                            @{
+                                                var value = (context as OTEPricing);
+                                                decimal finalAmount = Convert.ToDecimal(value.OtePriceMWhElectree);
+                                                <div>@finalAmount.ToString("#.##")</div>
+                                            }
+                                        </Template>
+                                    </RadzenDataGridColumn>
+                                }
+                            </Columns>
+                        </RadzenDataGrid>
+                    </RadzenRow>
+                </RadzenStack>
+            }
+           @*  else
+            {
+                <h6>
+                    <input type="text" @bind="txtInfoMessage" />
+                </h6>
+            
+            } *@
+        </RadzenStack>
+    </RadzenCard>
+}
+@code {
+    string DistributionProvider = "CEZ";
+    string DistributionTarif = "D02d";
+    string ElectricityBreaker = "<3x10A; <1x25A";
+    DateTime SelectedDate = DateTime.Now;
+    string[] arrDistributionProviders = new string[] { "CEZ", "PRE", "EGD(EON)" };
+    string[] arrDistributionTarif = new string[] { "D01d", "D02d", "D25d", "D26d", "D27d", "D35d", "D45d", "D56d", "D57d", "D61d" };
+    string[] arrBreakerValue = new string[] { "do 3x10A; do 1x25A", "nad 3x10A, do 3x16A vcetne",
+    "nad 3x16A, do 3x20A vcetne", "nad 3x20A, do 3x25A vcetne", "nad 3x25A, do 3x32A vcetne", "nad 3x32A, do 3x40A vcetne",
+    "nad 3x40A, do 3x50A vcetne", "nad 3x50A, do 3x63A vcetne", "nad 3x63A, do 3x80A vcetne", "nad 3x80A, do 3x100A vcetne",
+    "nad 3x100A, do 3x125A vcetne", "nad 3x125A, do 3x160A"};
+    string[] arrYear = new string[] { "2021", "2022", "2023", "2024" };
+    string txtInfoMessage = "Vašim kritériům nebyly nalezeny potřebná data v databázi.";
+    bool showDataLabels = false;
+    bool showGraph = false, showLoading = false;
+    IEnumerable<int> ElectricityProvider = new int[] { 1 };
+
+    IEnumerable<OTEPricing> colBezDodavatele = new List<OTEPricing>();
+    IEnumerable<OTEPricing> colCEZ = new List<OTEPricing>();
+    IEnumerable<OTEPricing> colElectree = new List<OTEPricing>();
+    IEnumerable<OTEPricing> colPriceResult = new List<OTEPricing>();
+
+    Orientation orientation = Orientation.Horizontal;
+    AlignItems alignItems = AlignItems.Center;
+    JustifyContent justifyContent = JustifyContent.SpaceBetween;
+    FlexWrap wrap = FlexWrap.Wrap;
+    string gap = "10px";
+    bool reverse;
+
+    #region "DropDown box"
+    private void OnChangeUploadFolder(object value)
+    {
+        // The 'value' parameter is the newly selected value from the dropdown.
+        // Add your logic for the change event here.
+        // MyStudentInfo.UploadFolder = value.ToString();
+    }
+    #endregion
+
+    private async Task OnClick(string text)
+    {
+        try
+        {
+            showGraph = false;
+            showLoading = true;
+            colBezDodavatele = new List<OTEPricing>();
+            colCEZ = new List<OTEPricing>();
+            colElectree = new List<OTEPricing>();
+            //string selectedDate = String.Format("{0}-{1}-{2}", SelectedDate.Year, SelectedDate.Month, SelectedDate.Day);
+            //string baf = DistributionProvider;
+            // colOTEPricing = await OTEService.LoadOTEByDate(value);
+            if (ElectricityProvider.Contains(1))
+            {
+                colBezDodavatele = await ElectricityService.LoadPriceMWhByProvider(SelectedDate, SelectedDate.Year.ToString(), "bezDodavatele", DistributionProvider, DistributionTarif, ElectricityBreaker); // .LoadOTEByDate(DateTime.Now, );
+                showGraph = true;
+            }
+            if (ElectricityProvider.Contains(2))
+            {
+                colCEZ = await ElectricityService.LoadPriceMWhByProvider(SelectedDate, SelectedDate.Year.ToString(), "CEZ", DistributionProvider, DistributionTarif, ElectricityBreaker);
+                showGraph = true;
+            }
+            if (ElectricityProvider.Contains(3))
+            {
+                colElectree = await ElectricityService.LoadPriceMWhByProvider(SelectedDate, SelectedDate.Year.ToString(), "Electree", DistributionProvider, DistributionTarif, ElectricityBreaker);
+                showGraph = true;
+            }
+
+            if (showGraph == false)
+            {
+                NotificationMessage msg = new NotificationMessage
+                    {
+                        Severity = NotificationSeverity.Error,
+                        Summary = "Výsledek hledání",
+                        Detail = "Na základě hledaných kritérií neexistují data pro zobrazení potřebných výsledků.",
+                        Duration = 5000
+                    };
+                ShowNotification(msg);
+            }
+
+            colPriceResult = new List<OTEPricing>();
+            colPriceResult = await ElectricityService.LoadPriceMWhByProviderResults(colBezDodavatele.ToList(), colCEZ.ToList(), colElectree.ToList());
+            showLoading = false;
+        }
+        catch (Exception ex)
+        {
+            //txtInfoMessage = "Dle zvolených kritérií nebylo možné poskytnout jakékoliv data.";
+            NotificationMessage msg = new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Chyba",
+                    Detail = txtInfoMessage,
+                    Duration = 5000
+                };
+            ShowNotification(msg);
+            showGraph = false;
+
+        }
+        finally
+        {
+            showLoading = false;
+        }
+    }
+
+    void ShowNotification(NotificationMessage message)
+    {
+        NotificationService.Notify(message);
+
+        //console.Log($"{message.Severity} notification");
+    }
+}

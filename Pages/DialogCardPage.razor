@@ -1,0 +1,164 @@
+﻿@page "/dialogcardpage/{ID}"
+
+@*/{TdoID}"
+    https://github.com/radzenhq/radzen-blazor/blob/master/RadzenBlazorDemos/Pages/DialogCardPage.razor
+    @using RadzenBlazorDemos.Data
+@using RadzenBlazorDemos.Models.Northwind
+@using Microsoft.EntityFrameworkCore*@
+
+@using Radzen
+@using HomeControlBlazor.Models
+@using HomeControlBlazor.Services
+
+
+@*@inherits AppDBContext*@
+@inject DialogService dialogService
+@inject IToDoService ITodo
+@inject GlobalStateService GlobalState
+
+@if (ToDo == null) //GlobalState.DialogCardPageFirstRun)
+{
+    <div class="rz-m-12">
+        <RadzenRow>
+            <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+        </RadzenRow>
+        <RadzenRow>
+            <RadzenText TextStyle="TextStyle.Subtitle1">Chyba: </RadzenText>
+            <RadzenText TextStyle="TextStyle.Subtitle1" Class="rz-m-0">@Error</RadzenText>
+        </RadzenRow>
+    </div>
+
+}
+else
+{
+    <RadzenStack Gap="1rem">
+        <RadzenRow>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                <RadzenRow>
+                    <RadzenText TextStyle="TextStyle.Subtitle1">Popis úkolu:</RadzenText>
+                </RadzenRow>
+                <RadzenRow>
+                    <RadzenText TextStyle="TextStyle.Subtitle1">@ToDo?.TdoDescription</RadzenText>
+                </RadzenRow>
+                @*<RadzenBadge BadgeStyle="BadgeStyle.Secondary" Text=@($"{String.Format(new System.Globalization.CultureInfo("en-US"), "{0:C}", order.Freight)}") />*@
+            </RadzenStack>
+        </RadzenRow>
+        <RadzenRow>
+            <RadzenColumn Size="12" SizeMD="6" Class="rz-p-4 rz-border-radius-1" Style="border: var(--rz-grid-cell-border)">
+                <RadzenText TextStyle="TextStyle.Subtitle1">Info</RadzenText>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center">
+                    <RadzenStack Gap="0" Class="rz-text-truncate">
+                        <RadzenText TextStyle="TextStyle.Overline" Class="rz-mt-2 rz-my-0" Style="color: var(--rz-text-tertiary-color);">Status</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body1" Class="rz-text-truncate"><b>@Enum.GetName(typeof(Status),ToDo.TdoStatus)</b></RadzenText>
+                        <RadzenText TextStyle="TextStyle.Overline" Class="rz-mt-4 rz-mb-0" Style="color: var(--rz-text-tertiary-color);">Kategorie</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body1" Class="rz-text-truncate"><b>@Enum.GetName(typeof(Category),ToDo.TdoCategory)</b></RadzenText>
+                        <RadzenText TextStyle="TextStyle.Overline" Class="rz-mt-4 rz-mb-0" Style="color: var(--rz-text-tertiary-color);">Priorita</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body1" Class="rz-text-truncate"><b>@Enum.GetName(typeof(TaskPriority),ToDo.TdoPriority)</b></RadzenText>
+                    </RadzenStack>
+                </RadzenStack>
+            </RadzenColumn>
+            <RadzenColumn Size="12" SizeMD="6" Class="rz-p-4 rz-border-radius-1" Style="border: var(--rz-grid-cell-border)">
+                <RadzenText TextStyle="TextStyle.Subtitle1">Upozornění</RadzenText>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center">
+                    <RadzenStack Gap="0" Class="rz-text-truncate">
+                        <RadzenText TextStyle="TextStyle.Overline" Class="rz-mt-2 rz-my-0" Style="color: var(--rz-text-tertiary-color);">Aktivní</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body1" Class="rz-text-truncate"><b>@Enum.GetName(typeof(YesNo),ToDo.TdoReminder)</b></RadzenText>
+                        <RadzenText TextStyle="TextStyle.Overline" Class="rz-mt-2 rz-my-0" Style="color: var(--rz-text-tertiary-color);">Interval</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body1" Class="rz-text-truncate"><b>@ToDo.TdoReminderInterval</b></RadzenText>
+                        <RadzenText TextStyle="TextStyle.Overline" Class="rz-mt-4 rz-mb-0" Style="color: var(--rz-text-tertiary-color);">Emailem</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body1" Class="rz-text-truncate"><b>@Enum.GetName(typeof(YesNo),ToDo.TdoReminderEmail)</b></RadzenText>
+                        <RadzenText TextStyle="TextStyle.Overline" Class="rz-mt-4 rz-mb-0" Style="color: var(--rz-text-tertiary-color);">SMS</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body1" Class="rz-text-truncate"><b>@Enum.GetName(typeof(YesNo),ToDo.TdoReminderSms)</b></RadzenText>
+                    </RadzenStack>
+                </RadzenStack>
+            </RadzenColumn>
+        </RadzenRow>
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem">
+            @* <RadzenButton Click="@((args) => dialogService.Close(false))" Variant="Variant.Flat" ButtonStyle="ButtonStyle.Light" Text="Cancel" Style="width: 120px" />*@
+            <RadzenButton Click="@((args) => dialogService.Close(true))" Variant="Variant.Flat" Text="OK" Style="width: 120px" />
+        </RadzenStack>
+    </RadzenStack>
+}
+
+@code {
+    [Parameter] public int ID { get; set; }
+
+    TblToDo ToDo;
+    //IEnumerable<TblToDo> ToDoDetails;
+    //private readonly AppDBContext _context;
+    //bool runFirstTime = true;
+    string Error = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (GlobalState.DialogCardPageFirstRun)
+            {
+                GlobalState.DialogCardPageFirstRun = false;
+                await base.OnInitializedAsync();
+
+                int a = 0;
+
+
+            }
+            ToDo = await ITodo.LoadRecByID(ID);
+        }
+        catch (Exception ex)
+        {
+            Error = ex.Message;
+            if (ToDo == null)
+            {
+                ToDo = await ITodo.LoadRecByID(ID);
+            }
+        }
+        //else
+        //{
+        //     // ToDo = await ITodo.LoadRecByID(ID);
+        //    ToDo = new TblToDo();
+        //    ToDo.TdoPriority = 0;
+        //    ToDo.TdoName = "N/A";
+        //    ToDo.TdoDescription = "...";
+        //    ToDo.TdoStatus = 0;
+        //    ToDo.TdoCategory = 0;
+        //    ToDo.TdoPriority = 0;
+        //    ToDo.TdoReminder = 0;
+        //    ToDo.TdoReminderInterval = 0;
+        //    ToDo.TdoReminderEmail = 0;
+        //    ToDo.TdoReminderSms = 0;
+        //}
+        //.Include("Customer")
+        //.Include("Employee").FirstOrDefault();
+
+        //ToDoDetails = _context.TblToDos.Where(o => o.TdoId == ToDoID).FirstOrDefault(); //dbContext.OrderDetails.Include("Order").ToList();
+    }
+
+    public enum Status
+    {
+        novy,
+        v_reseni,
+        hotovo
+    }
+
+    public enum TaskPriority
+    {
+        nizka,
+        stredni,
+        vysoka
+    }
+
+    public enum Category
+    {
+        barak,
+        zahrada,
+        garaz,
+        auta
+    }
+
+    public enum YesNo
+    {
+        ne,
+        ano
+    }
+
+}

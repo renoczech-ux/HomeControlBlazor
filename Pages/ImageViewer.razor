@@ -1,0 +1,72 @@
+﻿@page "/imageviewer"
+
+<h3>ImageViewer</h3>
+
+
+
+@*<RadzenTemplateForm TItem="Appointment" Data="@model" Submit=@OnSubmit>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Text" />
+        </div>
+        <div class="col">
+            <RadzenTextBox @bind-Value="@model.Text" Name="Text" />
+            <RadzenRequiredValidator Text="Title is required" Component="Text" />
+        </div>
+    </div>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Start" />
+        </div>
+        <div class="col">
+            <RadzenDatePicker @bind-Value="@model.Start" Name="Start" ShowTime="true" />
+            <RadzenRequiredValidator Text="Start is required" Component="Start" />
+        </div>
+    </div>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="End" />
+        </div>
+        <div class="col">
+            <RadzenDatePicker Name="End" @bind-Value="@model.End" ShowTime="true" />
+            <RadzenRequiredValidator Component="End" Text="End is required" />
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-3"></div>
+        <div class="col">
+            <RadzenButton ButtonType="ButtonType.Submit" Text="Save" />
+        </div>
+    </div>
+</RadzenTemplateForm>*@
+
+
+@code {
+  
+    //[Parameter] public string ImgURL { get; set; }
+
+    //string webURL = "https://www.radzen.com/assets/radzen-logo-top-b2d6e9dcacf7d344bbab515b8748c5f4d702c6c5bfc349bd9ff9003016a3a6ee.svg";
+
+    //[Parameter]
+    //public DateTime Start { get; set; }
+
+    //[Parameter]
+    //public DateTime End { get; set; }
+
+    //Appointment model = new Appointment();
+
+    //protected override void OnParametersSet()
+    //{
+    //    webURL = imgURL; 
+    //}
+
+    //void OnSubmit(Appointment model)
+    //{
+    //    DialogService.Close(model);
+    //}
+
+    //void Close()
+    //{
+    //    DialogService.Close();
+    //}
+}

@@ -1,0 +1,403 @@
+﻿@page "/singlePrivatedata"
+@attribute [Authorize(Roles = "Administrator, Pavla")]
+
+@using Radzen
+@using Microsoft.EntityFrameworkCore
+@using HomeControlBlazor.Models
+@using HomeControlBlazor.Services
+@using HomeControlBlazor.Shared
+
+@inject NotificationService NotificationService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRutime
+@inject NavigationManager MyNavigationManager
+@inject StudentInfo MyStudentInfo
+
+@*@inject IWebHostEnvironment Environment*@
+
+@using System.IO
+
+<h3>Private data storage</h3>
+
+<h4 class=".rz-background-color-danger"><strong>!!! jakékoliv sdílení těchto dat se zakazuje !!!</strong></h4>
+
+
+
+<div class="container-fluid">
+    <div class="row my-5">
+        <div class="col-lg-6 offset-lg-3">
+            <RadzenCard>
+                <RadzenTree Data=@entries Expand=@LoadFiles Style="width: 100%; height: 100%" Change=@OnChange @bind-Value=@selection>
+                    <RadzenTreeLevel Text=@GetTextForNode Template=@FileOrFolderTemplate />
+                </RadzenTree>
+            </RadzenCard>
+        </div>
+    </div>
+</div>
+
+<RadzenCard class="p-0">
+    <RadzenStack Orientation="Orientation.Vertical" Gap="1" Reverse="false" JustifyContent="JustifyContent.Normal" AlignItems="AlignItems.Normal" Wrap="FlexWrap.NoWrap" Style="height: 200px">
+
+        <RadzenCard>
+            <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">1. Jméno uživatele</RadzenText>
+            <RadzenTextArea Placeholder="Alfons Jarabák" Change=@(args => OnChangeUser(args, "IIS")) class="w-100" />
+            @* </RadzenCard>*@
+            <br />
+            <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">2. Cílová složka (upload)</RadzenText>
+            <RadzenDropDown TValue="string" Value=@uploadTargetFolder Data=@arrStudents Change="@(args => OnChangeUploadFolder(args))" Style="width: 100%" />
+            @*<RadzenCard >*@
+            <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">3. Popis souboru</RadzenText>
+            <RadzenTextArea Placeholder="soubor k předmětu xxx obsahující info yyy" @bind-Value=@FileDescription Rows="3" Change=@(args => OnChangeFileDescription(args, "no description")) class="w-100" />
+            @* </RadzenCard>*@
+            <br />
+            @*<RadzenCard>*@
+            <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">4. Výběr a upload souboru</RadzenText>
+            <RadzenUpload Url="upload/singlePrivatedata" Progress=@TrackProgress Complete=@CompleteUpload class="w-100" />
+            <RadzenProgressBar Value=@progress unit="@info" class="mt-4" Visible=@showProgress />
+            <RadzenButton Text="Cancel" Click=@(args => CancelUpload()) class="d-block mt-4" Visible=@showProgress />
+            <RadzenLabel Visible=@showComplete class="mt-4" Text=@completionMessage />
+        </RadzenCard>
+    </RadzenStack>
+</RadzenCard>
+
+
+@code {
+
+    IEnumerable<string> entries;
+    object selection;
+
+    string uploadTargetFolder = "...";
+    IEnumerable<string> directories;
+
+    protected override void OnInitialized()
+    {
+        MyStudentInfo.StudentName = "IIS";
+        MyStudentInfo.FileDescription = "N/A";
+
+        var xx = Directory.GetCurrentDirectory();
+        string newDirectory = string.Format("{0}\\{1}", xx, "wwwroot\\Private_data");
+        //string current = Directory.SetCurrentDirectory(newDirectory);
+        entries = Directory.GetDirectories(newDirectory) //Directory.GetCurrentDirectory())
+                           .Where(entry =>
+                           {
+                               var name = Path.GetFileName(entry);
+
+                               return !name.StartsWith(".") && name != "wwwroot\\Private_data"; // && name != "obj" && name != ".\\wwwroot\\css" && name != "_content";
+                           });
+
+        //companyNames.Append<01
+        directories = Directory.GetDirectories(newDirectory).Select(d => new DirectoryInfo(d).Name);
+
+    }
+
+    string[] arrStudents = new string[] { "Martin", "Pavla" };
+
+    //EventConsole console;
+    #region "Show directory tree"
+    public async Task OnChange()
+    {
+        // check if selection is folder
+        Checkpath check1 = GetInfo(selection.ToString());
+        if (check1.type == Filetype.File)
+        {
+            //ShowNotification(new NotificationMessage
+            //    {
+            //        Style = "position: absolute; left: -1000px;",
+            //        Severity = NotificationSeverity.Success,
+            //        Summary = "Vybrany soubor",
+            //        Detail = selection.ToString(),
+            //        Duration = 40000
+            //    });
+
+            //JSRuntime.InvokeAsync<object>("open", selection.ToString(), "_blank");
+            //string realPath;
+            //realPath = Server.MapPath("~/VSTE_data/");
+
+            //string url = "/counter";
+            //await JSRutime.InvokeAsync<object>("open", selection.ToString(), "_blank");
+
+            // https://www.bemalan.cz/home/vste_data/01_inf/prubezny_test_C__kombi_.pdf
+            string PrivateFolderAndFile = selection.ToString().Substring(selection.ToString().IndexOf("Private_data")).Replace(@"\", @"/");
+            var xx = Directory.GetCurrentDirectory();
+            string serverPath = "https://www.bemalan.cz/home/";
+            string newDirectory = string.Format("{0}//{1}", serverPath, PrivateFolderAndFile);
+            // string URI = @"https://www.bemalan.cz/home/vste_data/01_inf/prubezny_test_C__kombi_.pdf";
+            //MyNavigationManager.NavigateTo(URI);
+
+            await JSRutime.InvokeVoidAsync("open", newDirectory, "_blank");
+        }
+
+        DownloadCatalog().GetAwaiter().GetResult();
+
+        //if (selection is string entries)
+        //{
+        //    console.Log($"Selection changed to: {entries.}");
+        //}
+
+        //if (selection is Product product)
+        //{
+        //    console.Log($"Selection changed to: {product.ProductName}");
+        //}
+    }
+
+    private async Task DownloadCatalog()  //
+    {
+        Uri myUri = new Uri(selection.ToString(), UriKind.Absolute);
+        NavigationManager.NavigateTo(myUri.AbsoluteUri, true);
+    }
+
+
+
+
+    void ShowNotification(NotificationMessage message)
+    {
+        NotificationService.Notify(message);
+
+        //console.Log($"{message.Severity} notification");
+    }
+
+    void LoadFiles(TreeExpandEventArgs args)
+    {
+        var directory = args.Value as string;
+
+        args.Children.Data = Directory.EnumerateFileSystemEntries(directory);
+        args.Children.Text = GetTextForNode;
+        args.Children.HasChildren = (path) => Directory.Exists((string)path);
+        args.Children.Template = FileOrFolderTemplate;
+    }
+
+    string GetTextForNode(object data)
+    {
+        return Path.GetFileName((string)data);
+    }
+
+    RenderFragment<RadzenTreeItem> FileOrFolderTemplate = (context) => builder =>
+    {
+        string path = context.Value as string;
+        bool isDirectory = Directory.Exists(path);
+
+        builder.OpenComponent<RadzenIcon>(0);
+        builder.AddAttribute(1, nameof(RadzenIcon.Icon), isDirectory ? "folder" : "insert_drive_file");
+        builder.CloseComponent();
+        builder.AddContent(3, context.Text);
+    };
+
+    // moje
+
+
+    static Checkpath GetInfo(string path)
+    {
+        Checkpath checkpath = new Checkpath();
+        try
+        {
+            FileAttributes attr = File.GetAttributes(path);
+
+            //detect whether its a directory or file
+            if ((attr & FileAttributes.Directory) == FileAttributes.Directory)
+                checkpath.type = Filetype.Dir;
+            else
+                checkpath.type = Filetype.File;
+            checkpath.Ifexists = true;
+        }
+        catch
+        {
+            bool t = Path.HasExtension(path);
+            if (t)
+            {
+                checkpath.type = Filetype.File;
+            }
+            else
+            {
+                checkpath.type = Filetype.Dir;
+            }
+
+            checkpath.Ifexists = false;
+        }
+        return checkpath;
+    }
+
+    public class Checkpath
+    {
+        public bool Ifexists { get; set; }
+
+        public Filetype type { get; set; }
+    }
+
+    public enum Filetype
+    {
+        File = 0,
+        Dir = 1
+    }
+
+    #endregion
+
+    #region "File upload"
+    // file upload
+    RadzenUpload upload;
+    string User;
+    string FileDescription;
+
+    int progress;
+    bool showProgress;
+    bool showComplete;
+    string completionMessage;
+    bool cancelUpload = false;
+
+    void CompleteUpload(UploadCompleteEventArgs args)
+    {
+        if (!args.Cancelled)
+        {
+            //completionMessage = "Upload Complete!";
+            ShowNotification(new NotificationMessage
+            {
+                // Style = "position: absolute; left: -1000px;",
+                Severity = NotificationSeverity.Success,
+                Summary = "Upload souboru",
+                Detail = "Vybrany soubor byl uspesne nahran...",
+                Duration = 50000
+            });
+        }
+        else
+        {
+            //completionMessage = "Upload Cancelled!";
+
+            ShowNotification(new NotificationMessage
+            {
+                //Style = "position: absolute; left: -1000px;",
+                Severity = NotificationSeverity.Error,
+                Summary = "Upload souboru",
+                Detail = String.Format("V prubehu uploadu souboru nastala chyba. Kontaktute admina."),
+                Duration = 50000
+            });
+        }
+
+
+        showProgress = false;
+        //showComplete = true;
+    }
+
+    void TrackProgress(UploadProgressArgs args)
+    {
+        showProgress = true;
+        showComplete = false;
+        progress = args.Progress;
+
+        // cancel upload
+        args.Cancel = cancelUpload;
+
+        // reset cancel flag
+        cancelUpload = false;
+    }
+
+    void CancelUpload()
+    {
+        cancelUpload = true;
+    }
+
+    int customParameter = 1;
+
+    void OnChange(UploadChangeEventArgs args, string name)
+    {
+        foreach (var file in args.Files)
+        {
+            //console.Log($"File: {file.Name} / {file.Size} bytes");
+        }
+
+        //console.Log($"{name} changed");
+    }
+
+    void OnChangeUser(string value, string name)
+    {
+        //console.Log($"{name} value changed to {value}");
+        //User = value;
+        MyStudentInfo.StudentName = value;
+    }
+
+    void OnChangeFileDescription(string value, string name)
+    {
+        //console.Log($"{name} value changed to {value}");
+        FileDescription = value;
+        MyStudentInfo.FileDescription = value;
+    }
+
+    void OnProgress(UploadProgressArgs args, string name)
+    {
+        // console.Log($"{args.Progress}% '{name}' / {args.Loaded} of {args.Total} bytes.");
+        if (args.Total > 30000000)
+        {
+            ShowNotification(new NotificationMessage
+            {
+                //Style = "position: absolute; left: -1000px;",
+                Severity = NotificationSeverity.Error,
+                Summary = "Chyba pri uploadu souboru",
+                Detail = String.Format("Maximalni velikost souboru je 30MB. Velikost souboru: {0}B", args.Total.ToString()),
+                Duration = 40000
+            });
+            return;
+        }
+
+        this.info = $"{args.Progress}% '{name}' / {args.Loaded} of {args.Total} bytes.";
+        this.progress = args.Progress;
+
+        if (args.Progress == 100)
+        {
+            foreach (var file in args.Files)
+            {
+                // console.Log($"Uploaded: {file.Name} / {file.Size} bytes");
+                ShowNotification(new NotificationMessage
+                {
+                    Style = "position: absolute; left: -1000px;",
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Vybrany soubor byl nahran",
+                    Detail = String.Format("Velikost souboru: {0}B", args.Total.ToString()),
+                    Duration = 40000
+                });
+            }
+        }
+    }
+
+    void OnComplete(UploadCompleteEventArgs args)
+    {
+        //console.Log($"Server response: {args.RawResponse}");
+        ShowNotification(new NotificationMessage
+        {
+            Style = "position: absolute; left: -1000px;",
+            Severity = NotificationSeverity.Success,
+            Summary = "Vybrany soubor byl nahran",
+            Detail = args.RawResponse,
+            Duration = 40000
+        });
+    }
+
+    string info;
+
+    private IWebHostEnvironment _environment;
+
+    private void Button0Click()
+    {
+
+
+        //var imagePath = @"\VSTE_data\Upload";
+        //var uploadPath = Environment.WebRootPath + imagePath;
+
+        //ShowNotification(new NotificationMessage
+        //    {
+        //        Style = "position: absolute; left: -1000px;",
+        //        Severity = NotificationSeverity.Success,
+        //        Summary = "Vybrany soubor byl nahran",
+        //        Detail = uploadPath.ToString(),
+        //        Duration = 40000
+        //    });
+    }
+    #endregion
+
+    #region "DropDown box"
+    private void OnChangeUploadFolder(object value)
+    {
+        // The 'value' parameter is the newly selected value from the dropdown.
+        // Add your logic for the change event here.
+        MyStudentInfo.UploadFolder = value.ToString();
+    }
+    #endregion
+}
+

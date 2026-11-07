@@ -1,0 +1,574 @@
+﻿@page "/fve"
+@attribute [Authorize(Roles = "Administrator")]
+
+@using Radzen
+@using Microsoft.EntityFrameworkCore
+@using HomeControlBlazor.Models
+@using HomeControlBlazor.Services
+@using System.Globalization
+@using System.Timers;
+
+@inject NotificationService NotificationService
+@inject TooltipService tooltipService
+@inject IFVEService IFVEServices
+@inject DialogService DialogService
+@inject NavigationManager navManager
+
+@if (colElectricitySolar == null)
+{
+    <div class="rz-m-12">
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    </div>
+
+}
+else
+{
+    <h4>FVE</h4>
+    <h6>Last update: @lastUpdateSolar.ToString("dd.MM. HH:mm:ss")</h6>
+    <RadzenStack Orientation="Orientation.Horizontal" Wrap="FlexWrap.Wrap" JustifyContent="JustifyContent.Center" Class="rz-shadow-5 shadows rz-p-12" Gap="1rem">
+
+        @* <RadzenRow class="rz-text-align-center" Gap="1rem">*@
+        <RadzenColumn Size="12" SizeXS="11" SizeSM="10" SizeMD="9" SizeLG="8" SizeXL="7" SizeXX="6" class="rz-p-5">
+            <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+                <h4>Napětí</h4>
+            </RadzenRow>
+            <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+                <h4>@valueSolarVoltage V</h4>
+            </RadzenRow>
+            <RadzenRadialGauge Style="width: 100%; height:400px;">
+                <RadzenRadialGaugeScale StartAngle="-150" EndAngle="150" Step="25" Min="0" Max="500" TickPosition=GaugeTickPosition.Outside>
+                    <RadzenRadialGaugeScalePointer Value=@valueSolarVoltage Length="0.6" ShowValue=@showValue>
+                        <Template Context="pointer">
+                            <h1>
+                                @pointer.Value W
+                            </h1>
+                        </Template>
+                    </RadzenRadialGaugeScalePointer>
+                    <RadzenRadialGaugeScaleRange From="0" To="250" Fill="green" />
+                    <RadzenRadialGaugeScaleRange From="250" To="330" Fill="orange" />
+                    <RadzenRadialGaugeScaleRange From="330" To="500" Fill="red" />
+                </RadzenRadialGaugeScale>
+            </RadzenRadialGauge>
+        </RadzenColumn>
+        <RadzenColumn Size="12" SizeXS="11" SizeSM="10" SizeMD="9" SizeLG="8" SizeXL="7" SizeXX="6" class="rz-p-5">
+            <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+                <h4>Proud</h4>
+            </RadzenRow>
+            <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+                <h4>@valueSolarCurrent A</h4>
+            </RadzenRow>
+            <RadzenRadialGauge Style="width: 100%; height:400px;">
+                <RadzenRadialGaugeScale StartAngle="-150" EndAngle="150" Step="1" Min="0" Max="20" TickPosition=GaugeTickPosition.Outside>
+                    <RadzenRadialGaugeScalePointer Value=@valueSolarCurrent Length="0.6" ShowValue=@showValue>
+                        <Template Context="pointer">
+                            <h1>
+                                @pointer.Value W
+                            </h1>
+                        </Template>
+                    </RadzenRadialGaugeScalePointer>
+                    <RadzenRadialGaugeScaleRange From="0" To="10" Fill="green" />
+                    <RadzenRadialGaugeScaleRange From="10" To="16" Fill="orange" />
+                    <RadzenRadialGaugeScaleRange From="16" To="20" Fill="red" />
+                </RadzenRadialGaugeScale>
+            </RadzenRadialGauge>
+        </RadzenColumn>
+        <RadzenColumn Size="12" SizeXS="11" SizeSM="10" SizeMD="9" SizeLG="8" SizeXL="7" SizeXX="6" class="rz-p-5">
+            <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+                <h4>Výkon</h4>
+            </RadzenRow>
+            <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+                <h4>@valueSolarPower W</h4>
+            </RadzenRow>
+            <RadzenRadialGauge Style="width: 100%; height:400px;">
+                <RadzenRadialGaugeScale StartAngle="-150" EndAngle="150" Step="250" Min="0" Max="3500" TickPosition=GaugeTickPosition.Outside>
+                    <RadzenRadialGaugeScalePointer Value=@valueSolarPower Length="0.6" ShowValue=@showValue>
+                        <Template Context="pointer">
+                            <h1>
+                                @pointer.Value W
+                            </h1>
+                        </Template>
+                    </RadzenRadialGaugeScalePointer>
+                    <RadzenRadialGaugeScaleRange From="0" To="2500" Fill="green" />
+                    <RadzenRadialGaugeScaleRange From="2500" To="3000" Fill="orange" />
+                    <RadzenRadialGaugeScaleRange From="3000" To="3500" Fill="red" />
+                </RadzenRadialGaugeScale>
+            </RadzenRadialGauge>
+        </RadzenColumn>
+        <RadzenColumn Size="12" SizeXS="11" SizeSM="10" SizeMD="9" SizeLG="8" SizeXL="7" SizeXX="6" class="rz-p-5">
+            <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+                <h4>Teplota AKU</h4>
+            </RadzenRow>
+            <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+                <h4>@valueSolarTemp °C</h4>
+            </RadzenRow>
+            <RadzenRadialGauge Style="width: 100%; height:400px;">
+                <RadzenRadialGaugeScale StartAngle="-150" EndAngle="150" Step="5" Min="0" Max="100" TickPosition=GaugeTickPosition.Outside>
+                    <RadzenRadialGaugeScalePointer Value=@valueSolarTemp Length="0.6" ShowValue=@showValue>
+                        <Template Context="pointer">
+                            <h1>
+                                @pointer.Value °C
+                            </h1>
+                        </Template>
+                    </RadzenRadialGaugeScalePointer>
+                    <RadzenRadialGaugeScaleRange From="0" To="35" Fill="blue" />
+                    <RadzenRadialGaugeScaleRange From="35" To="85" Fill="orange" />
+                    <RadzenRadialGaugeScaleRange From="85" To="100" Fill="red" />
+                </RadzenRadialGaugeScale>
+            </RadzenRadialGauge>
+        </RadzenColumn>
+
+        <RadzenColumn Size="12" SizeXS="11" SizeSM="10" SizeMD="9" SizeLG="8" SizeXL="7" SizeXX="6" class="rz-p-5">
+            <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+                <h4>Výkon/h</h4>
+            </RadzenRow>
+            <RadzenRow JustifyContent="JustifyContent.Normal" AlignItems="AlignItems.Normal" Gap="1rem">
+                <RadzenArcGauge>
+                    <RadzenArcGaugeScale Step="100" Min="0" Max="1000" MinorStep="50" Radius="1" TickPosition="GaugeTickPosition.Outside" Y="0.9" Margin="5">
+                        <RadzenArcGaugeScaleValue Value=@valueSolarPowerHour ShowValue=true>
+                            <Template Context="pointer">
+                                <h4>
+                                    @pointer.Value Wh
+                                </h4>
+                            </Template>
+                        </RadzenArcGaugeScaleValue>
+                    </RadzenArcGaugeScale>
+                </RadzenArcGauge>
+            </RadzenRow>
+            @*   </RadzenRow>*@
+        </RadzenColumn>
+
+        <RadzenColumn Size="12" SizeXS="11" SizeSM="10" SizeMD="9" SizeLG="8" SizeXL="7" SizeXX="6" class="rz-p-5">
+            <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+                <h4>Výkon/den</h4>
+            </RadzenRow>
+            <RadzenRow JustifyContent="JustifyContent.Normal" AlignItems="AlignItems.Normal" Gap="1rem">
+                <RadzenArcGauge>
+                    <RadzenArcGaugeScale Step="1" Min="0" Max="10" MinorStep="0.1" Radius="1" TickPosition="GaugeTickPosition.Outside" Y="0.9" Margin="10">
+                        <RadzenArcGaugeScaleValue Value=@valueSolarPowerDay ShowValue=true>
+                            <Template Context="pointer">
+                                <h4>
+                                    @pointer.Value kWh
+                                </h4>
+                            </Template>
+                        </RadzenArcGaugeScaleValue>
+                    </RadzenArcGaugeScale>
+                </RadzenArcGauge>
+            </RadzenRow>
+            @*   </RadzenRow>*@
+        </RadzenColumn>
+    </RadzenStack>
+
+    //graf vykon FVE
+
+    <RadzenStack Orientation="Orientation.Horizontal" Wrap="FlexWrap.Wrap" JustifyContent="JustifyContent.Center" Class="rz-shadow-5 shadows rz-p-12" Gap="1rem">
+        <RadzenRow JustifyContent="JustifyContent.Normal" AlignItems="AlignItems.Normal" Gap="1rem">
+            <h4>Aktuální výkon FVE vs předpodvěď výkonu PV Forecast</h4>
+        </RadzenRow>
+        <RadzenRow JustifyContent="JustifyContent.Normal" AlignItems="AlignItems.Normal" Gap="1rem">
+            <RadzenCard class="w-100 mb-4" Style="display: flex; align-items: center; gap: 0.5rem">
+                @*   <RadzenCheckBox @bind-Value="@smooth" Name="smooth"></RadzenCheckBox>
+            <RadzenLabel Text="Smooth" For="smooth" Style="margin-right: 1rem;" />*@
+                <RadzenColumn class="rz-p-5">
+                    <RadzenCheckBox @bind-Value="@showDataLabelsPVForecast" Name="dataLabels"></RadzenCheckBox>
+                    <RadzenLabel Text="data PV Forecast" For="dataLabels" />
+                    <RadzenCheckBox @bind-Value="@showGraphPVForecast" Name="showGraphPVForecast"></RadzenCheckBox>
+                    <RadzenLabel Text="graf PV Forecast" For="showGraphPVForecast" />
+                </RadzenColumn>
+                <RadzenColumn class="rz-p-5">
+                    <RadzenCheckBox @bind-Value="@showDataLabelsFVEMax" Name="dataLabelsMax"></RadzenCheckBox>
+                    <RadzenLabel Text="data FVE Max" For="dataLabelsMax" />
+                    <RadzenCheckBox @bind-Value="@showGraphSolarMax" Name="showGraphFVEMax"></RadzenCheckBox>
+                    <RadzenLabel Text="graf FVE Max" For="showGraphFVEMax" />
+                </RadzenColumn>
+                <RadzenColumn class="rz-p-5">
+                    <RadzenCheckBox @bind-Value="@showDataLabelsFVEMin" Name="dataLabelsMin"></RadzenCheckBox>
+                    <RadzenLabel Text="data FVE min" For="dataLabelsMin" />
+                    <RadzenCheckBox @bind-Value="@showGraphSolarMin" Name="showGraphFVEMin"></RadzenCheckBox>
+                    <RadzenLabel Text="graf FVE Min" For="showGraphFVEMin" />
+                </RadzenColumn>
+                @*<RadzenColumn class="rz-p-5">
+            <RadzenCheckBox @bind-Value="@showDataLabelsFVEMin" Name="dataLabelsMin"></RadzenCheckBox>
+            <RadzenLabel Text="data FVE min" For="dataLabelsMin" />
+            <RadzenCheckBox @bind-Value="@showGraphSolarMin" Name="showGraphFVEMin"></RadzenCheckBox>
+            <RadzenLabel Text="graf FVE Min" For="showGraphFVEMin" />
+            </RadzenColumn>*@
+                @* <RadzenColumn class="rz-p-5">
+            <RadzenCheckBox @bind-Value="@showDataLabelsFVEPowerLabel" Name="dataLabelsPowerLabel"></RadzenCheckBox>
+            <RadzenLabel Text="zobrazit popis Y" For="dataLabelsPowerLabel" />
+            </RadzenColumn>*@
+            </RadzenCard>
+            <RadzenChart style="width: 100%">
+                <RadzenLineSeries Smooth="true" Data="@colPVForecast" CategoryProperty="PvfTime" Title="PV forecast" ValueProperty="PvfPower" RenderingOrder="1" Visible="@showGraphPVForecast">
+                    @* <RadzenSeriesTrendLine Visible="@trend" Stroke="var(--rz-danger-dark)" LineType="LineType.Dashed" />
+                <RadzenSeriesMedianLine Visible="@median" Stroke="var(--rz-success-dark)" LineType="LineType.Dotted" />
+                <RadzenSeriesMeanLine Visible="@mean" Stroke="var(--rz-info-dark)" LineType="LineType.Dotted" />*@
+                    @* <RadzenSeriesModeLine Visible="@mode" Stroke="var(--rz-warning-darker)" LineType="LineType.Dotted" />*@
+                    <RadzenSeriesDataLabels Visible="@showDataLabelsPVForecast" />
+                    <RadzenMarkers MarkerType="MarkerType.Square" />
+                    <RadzenCategoryAxis Padding="1" Min="0" Max="24" Step="1" Formatter="@FormatAsHour">
+                        <RadzenAxisTitle Text="Hodina" />
+                        <RadzenGridLines Visible="true" />
+                    </RadzenCategoryAxis>
+                    <RadzenValueAxis Step="100">
+                        <RadzenGridLines Visible="true" />
+                        <RadzenAxisTitle Text="Výkon (W)" />
+                    </RadzenValueAxis>
+                </RadzenLineSeries>
+
+                <RadzenLineSeries Smooth="true" Data="@colSolarValueMax" CategoryProperty="Hour" Title="FVE vykon (max)" ValueProperty="Power"
+                                  RenderingOrder="1" Visible="@showGraphSolarMax">
+                    @* <RadzenSeriesTrendLine Visible="@trend" Stroke="var(--rz-danger-dark)" LineType="LineType.Dashed" />
+                <RadzenSeriesMedianLine Visible="@median" Stroke="var(--rz-success-dark)" LineType="LineType.Dotted" />
+                <RadzenSeriesMeanLine Visible="@mean" Stroke="var(--rz-info-dark)" LineType="LineType.Dotted" />*@
+                    @* <RadzenSeriesModeLine Visible="@mode" Stroke="var(--rz-warning-darker)" LineType="LineType.Dotted" />*@
+                    <RadzenSeriesDataLabels Visible="@showDataLabelsFVEMax" />
+                    <RadzenMarkers MarkerType="MarkerType.Circle" />
+                    <RadzenCategoryAxis Padding="1" Min="0" Max="24" Step="1" Formatter="@FormatAsHour">
+                        <RadzenAxisTitle Text="Hodina" />
+                        <RadzenGridLines Visible="true" />
+                    </RadzenCategoryAxis>
+                    <RadzenValueAxis Step="100">
+                        <RadzenGridLines Visible="true" />
+                        <RadzenAxisTitle Text="Výkon (W)" />
+                    </RadzenValueAxis>
+                </RadzenLineSeries>
+
+                <RadzenLineSeries Smooth="true" Data="@colSolarValueMin" CategoryProperty="Hour" Title="FVE vykon(min)" ValueProperty="Power"
+                                  RenderingOrder="1" Visible="@showGraphSolarMin">
+                    @* <RadzenSeriesTrendLine Visible="@trend" Stroke="var(--rz-danger-dark)" LineType="LineType.Dashed" />
+                <RadzenSeriesMedianLine Visible="@median" Stroke="var(--rz-success-dark)" LineType="LineType.Dotted" />
+                <RadzenSeriesMeanLine Visible="@mean" Stroke="var(--rz-info-dark)" LineType="LineType.Dotted" />*@
+                    @* <RadzenSeriesModeLine Visible="@mode" Stroke="var(--rz-warning-darker)" LineType="LineType.Dotted" />*@
+                    <RadzenSeriesDataLabels Visible="@showDataLabelsFVEMin" />
+                    <RadzenMarkers MarkerType="MarkerType.Diamond" />
+                    <RadzenCategoryAxis Padding="1" Min="0" Max="24" Step="1" Formatter="@FormatAsHour">
+                        <RadzenAxisTitle Text="Hodina" />
+                        <RadzenGridLines Visible="true" />
+                    </RadzenCategoryAxis>
+                    <RadzenValueAxis Step="100" Visible="@showDataLabelsFVEPowerLabel">
+                        <RadzenGridLines Visible="true" />
+                        <RadzenAxisTitle Text="Výkon (W)" />
+                    </RadzenValueAxis>
+                </RadzenLineSeries>
+                <RadzenLegend Position="LegendPosition.Bottom" />
+            </RadzenChart>
+        </RadzenRow>
+    </RadzenStack>
+
+    // graf vykonu dle jednotlivych hodin
+    <RadzenStack Orientation="Orientation.Vertical" Wrap="FlexWrap.Wrap" JustifyContent="JustifyContent.Center" Class="rz-shadow-5 shadows rz-p-12" Gap="1rem">
+        <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+            <h4>Hodinový / denní výkon FVE</h4>
+        </RadzenRow>
+
+        <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Normal" Gap="1rem">
+            <RadzenChart class="w-100" style="width: 100%">
+                <RadzenColumnSeries Data="@colSolarPowerHour" CategoryProperty="Hour" Title="Wh/1h" LineType="LineType.Dashed" ValueProperty="PowerHour">
+                    <RadzenSeriesDataLabels Visible="true" />
+                </RadzenColumnSeries>
+                <RadzenColumnSeries Data="@colSolarPowerDay" CategoryProperty="Hour" Title="Wh/den" ValueProperty="PowerDay">
+                    <RadzenSeriesDataLabels Visible="@true" />
+                </RadzenColumnSeries>
+                <RadzenColumnOptions Radius="5" />
+                <RadzenCategoryAxis Step="1" Max="@maxSolarPowerHour">
+                    <RadzenAxisTitle Text="Hodina" />
+                    <RadzenGridLines Visible="true" />
+                </RadzenCategoryAxis>
+                <RadzenValueAxis>
+                    <RadzenGridLines Visible="true" />
+                    <RadzenAxisTitle Text="Výkon (Wh)" />
+                </RadzenValueAxis>
+                <RadzenLegend Position="LegendPosition.Bottom" />
+            </RadzenChart>
+        </RadzenRow>
+        @*            </div>
+    </div>
+    </div>*@
+    </RadzenStack>
+
+    // graf teplota AKU
+    @*
+    <RadzenStack Orientation="Orientation.Vertical" Wrap="FlexWrap.Wrap" JustifyContent="JustifyContent.Center" Class="rz-shadow-5 shadows rz-p-12" Gap="1rem">
+        <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+            <h4>Teplota AKU</h4>
+        </RadzenRow>
+        <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Normal" Gap="1rem">   
+            <RadzenChart style="width: 100%">
+                <RadzenLineSeries Smooth="true" Data="@colTempValueMax" CategoryProperty="Hour" Title="Teplota AKU" ValueProperty="Temp"
+                                  RenderingOrder="1" Visible="true">
+                    <RadzenSeriesDataLabels Visible="true" />
+                    <RadzenMarkers MarkerType="MarkerType.Circle" />
+                    <RadzenCategoryAxis Padding="1" Min="0" Max="@tempHourMax" Step="1">
+                        <RadzenAxisTitle Text="Hodina" />
+                        <RadzenGridLines Visible="true" />
+                    </RadzenCategoryAxis>
+                    <RadzenValueAxis Step="5">
+                        <RadzenGridLines Visible="true" />
+                        <RadzenAxisTitle Text="Teplota (°C)" />
+                    </RadzenValueAxis>
+                </RadzenLineSeries>
+                <RadzenLegend Position="LegendPosition.Bottom" />
+            </RadzenChart>
+        </RadzenRow>       
+    </RadzenStack>
+    *@
+    // historie dat
+    <RadzenStack Orientation="Orientation.Vertical" Wrap="FlexWrap.Wrap" JustifyContent="JustifyContent.Center" Class="rz-shadow-5 shadows rz-p-12" Gap="1rem">
+        <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+            <h4>Historie dat</h4>
+        </RadzenRow>
+
+        <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Normal" Gap="1rem">
+            <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="24" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                            Data="@colElectricitySolar" TItem="TblSolarPowerSystem" ColumnWidth="auto" LogicalFilterOperator="LogicalFilterOperator.Or" Order>
+                <Columns>
+                    <RadzenDataGridColumn TItem="TblSolarPowerSystem" Property="SelDateTime" Filterable="false" Title="Den" Frozen="true" Width="auto" TextAlign="TextAlign.Center">
+                        <Template>
+                            @{
+                                var value = (context as TblSolarPowerSystem);
+                                DateTime date = value.SpsDateTime;
+                                <div>@date.ToString("dd.MM.yyyy HH:mm:ss")</div>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="TblSolarPowerSystem" Property="SpsVoltage" Filterable="false" Title="Napeti [V]" Frozen="true" Width="auto" TextAlign="TextAlign .Center" />
+                    <RadzenDataGridColumn TItem="TblSolarPowerSystem" Property="SpsCurrent" Filterable="false" Title="Proud [A]" Frozen="true" Width="auto" TextAlign="TextAlign.Center" />
+                    <RadzenDataGridColumn TItem="TblSolarPowerSystem" Property="SpsPower" Filterable="false" Title="Vykon [W]" Frozen="true" Width="auto" TextAlign="TextAlign.Center" />
+                    <RadzenDataGridColumn TItem="TblSolarPowerSystem" Property="SpsTemperature" Filterable="false" Title="Teplota [°C]" Frozen="true" Width="auto" TextAlign="TextAlign .Center" />
+                    <RadzenDataGridColumn TItem="TblSolarPowerSystem" Property="SpsEnergyHrAccWh" Filterable="false" Title="Vykon/1h [Wh]" Frozen="true" Width="auto" TextAlign="TextAlign.Center" />
+                    <RadzenDataGridColumn TItem="TblSolarPowerSystem" Property="SpsEnergyDayAcc" Filterable="false" Title="Vykon/den [kWh]" Frozen="true" Width="auto" TextAlign="TextAlign.Center" />
+
+                    @*           <RadzenDataGridColumn TItem="TblElectricity" Property="SelTotal" Filterable="false" Title="Total +/-" Frozen="true" Width="auto" TextAlign="TextAlign.Center" />
+                <RadzenDataGridColumn TItem="TblElectricity" Property="SelTotalPower" Filterable="false" Title="Total +" Frozen="true" Width="auto" TextAlign="TextAlign.Center" />
+                *@
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenRow>
+    </RadzenStack>
+
+    
+}
+
+@code {
+    //@* Min="0" Max="1000" Step="100"*@
+    bool showDataLabelsPVForecast = true;
+    bool showDataLabelsFVEMax = true;
+    bool showDataLabelsFVEMin = true;
+    bool showDataLabelsFVEPowerLabel = true;
+    bool showGraphPVForecast = true;
+    bool showGraphSolarMin = false;
+    bool showGraphSolarMax = true;
+    bool showValue = false;
+    double value = 100;
+    double valueSolarVoltage = 0, valueSolarCurrent = 0, valueSolarPower = 0, valueSolarTemp = 0, valueSolarPowerDay = 0, valueSolarPowerHour = 0;
+    DateTime lastUpdateSolar = new DateTime(1983, 12, 10);
+    bool trend = true;
+    bool median = false;
+    bool mean = false;
+    bool mode = false;
+    int tempHourMax = 1;
+    int maxSolarPowerHour = 1;
+
+    IEnumerable<TblSolarPowerSystem> colElectricitySolar;
+    IEnumerable<TblPvforecast> colPVForecast;
+    List<SolarRecords> colSolarValueMax = new System.Collections.Generic.List<SolarRecords>();
+    List<SolarRecords> colSolarValueMin = new System.Collections.Generic.List<SolarRecords>();
+    List<SolarRecords> colTempValueMax = new System.Collections.Generic.List<SolarRecords>();
+    List<SolarRecords> colSolarPowerHour = new System.Collections.Generic.List<SolarRecords>();
+    List<SolarRecords> colSolarPowerDay = new System.Collections.Generic.List<SolarRecords>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+       await LoadData();
+    }
+
+    public async Task LoadData()
+    {
+        try
+        {
+            colElectricitySolar = await IFVEServices.LoadRecSolarSystem(DateTime.Now);
+            if (colElectricitySolar != null)
+            {
+                colElectricitySolar = colElectricitySolar.OrderByDescending(date => date.SpsDateTime);
+
+                valueSolarVoltage = Convert.ToDouble(colElectricitySolar.First().SpsVoltage);
+                valueSolarCurrent = Convert.ToDouble(colElectricitySolar.First().SpsCurrent);
+                valueSolarPower = Convert.ToDouble(colElectricitySolar.First().SpsPower);
+                valueSolarTemp = Convert.ToDouble(colElectricitySolar.First().SpsTemperature);
+                valueSolarPowerHour = Convert.ToDouble(colElectricitySolar.First().SpsEnergyHrAccWh);
+                valueSolarPowerDay = Convert.ToDouble(colElectricitySolar.First().SpsEnergyDayAcc);
+
+                lastUpdateSolar = colElectricitySolar.First().SpsDateTime;
+
+                //var result = colElectricitySolar.GroupBy(element => element.SpsDateTime.Hour)
+                //     .SelectMany(group => group.Where(element => element.SpsVoltage == group.Max(obj => obj.SpsVoltage)));
+
+                var byHourMax = colElectricitySolar.GroupBy(r => r.SpsDateTime.Hour).Select(g => new { Hour = g.Key, MaxPower = g.Max(r => r.SpsPower) });
+                foreach (var lclValue in byHourMax)
+                {
+                    SolarRecords lclItem = new SolarRecords();
+                    lclItem.Hour = lclValue.Hour;
+                    lclItem.Power = Convert.ToDouble(lclValue.MaxPower);
+                    colSolarValueMax.Add(lclItem);
+                }
+
+                var byHourMin = colElectricitySolar.GroupBy(r => r.SpsDateTime.Hour).Select(g => new { Hour = g.Key, MaxPower = g.Min(r => r.SpsPower) });
+                foreach (var lclValue in byHourMin)
+                {
+                    SolarRecords lclItem = new SolarRecords();
+                    lclItem.Hour = lclValue.Hour;
+                    lclItem.Power = Convert.ToDouble(lclValue.MaxPower);
+                    colSolarValueMin.Add(lclItem);
+                }
+
+                var byPowerHour = colElectricitySolar.GroupBy(r => r.SpsDateTime.Hour).Select(g => new { Hour = g.Key, PowerHour = g.Max(r => r.SpsEnergyHrAccWh) });
+                foreach (var lclValue in byPowerHour)
+                {
+                    SolarRecords lclItem = new SolarRecords();
+                    lclItem.Hour = lclValue.Hour;
+                    lclItem.PowerHour = Convert.ToDouble(lclValue.PowerHour);
+                    colSolarPowerHour.Add(lclItem);
+                }
+
+                var byPowerDay = colElectricitySolar.GroupBy(r => r.SpsDateTime.Hour).Select(g => new { Hour = g.Key, PowerDay = g.Max(r => r.SpsEnergyDayAcc) });
+                foreach (var lclValue in byPowerDay)
+                {
+                    SolarRecords lclItem = new SolarRecords();
+                    lclItem.Hour = lclValue.Hour;
+                    lclItem.PowerDay = Convert.ToDouble(lclValue.PowerDay * 1000);
+                    colSolarPowerDay.Add(lclItem);
+                }
+                maxSolarPowerHour = byPowerDay.Max(item => item.Hour) + 1;
+
+
+                var byTempMax = colElectricitySolar.GroupBy(r => r.SpsDateTime.Hour).Select(g => new { Hour = g.Key, Temp = g.Max(r => r.SpsTemperature) });
+                foreach (var lclValue in byTempMax)
+                {
+                    SolarRecords lclItem = new SolarRecords();
+                    lclItem.Hour = lclValue.Hour;
+                    lclItem.Temp = Convert.ToDouble(lclValue.Temp);
+                    colTempValueMax.Add(lclItem);
+                }
+                tempHourMax = byTempMax.Max(item => item.Hour);
+            }
+            else
+            {
+                valueSolarVoltage = 0;
+                valueSolarCurrent = 0;
+                valueSolarPower = 0;
+                lastUpdateSolar = new DateTime(1983, 12, 10);
+            }
+
+            colPVForecast = await IFVEServices.LoadPVForecastRecords(DateTime.Now);
+            //if (colPVForecast != null)
+            //{
+            //    foreach (TblPvforecast item in colPVForecast)
+            //    {
+            //        colPVForecast.
+            //    }
+            //}
+
+            StartTimer();
+        }
+        catch(Exception ex)
+        {
+            NotificationMessage msg = new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Communication error",
+                    Detail = ex.Message,
+                    Duration = 5000
+                };
+            ShowNotification(msg);
+        }
+    }
+
+    private static System.Timers.Timer _timer;
+    private int counter = 60;
+
+    public void StartTimer()
+    {
+        _timer = new System.Timers.Timer(60000);
+        _timer.Elapsed += CountDownTimer;
+        _timer.Enabled = true;
+    }
+
+    public async void CountDownTimer(Object source, System.Timers.ElapsedEventArgs e)
+    {
+        //if (counter > 0)
+        //{
+        //    counter -= 1;
+        //}
+        //else
+        //{
+        //    _timer.Enabled = false;
+        //}
+
+        await InvokeAsync(async () =>
+        {
+            //            StateHasChanged();
+            //navManager.NavigateTo("/home/fve", forceLoad: true);
+            LoadData();
+        });
+    }
+
+    public void Dispose()
+    {
+        _timer?.Dispose();
+    }
+
+
+    IEnumerable<GaugeTickPosition> tickPositions = Enum.GetValues(typeof(GaugeTickPosition)).Cast<GaugeTickPosition>();
+    GaugeTickPosition tickPosition = GaugeTickPosition.Inside;
+
+    string FormatAsTime(object value)
+    {
+        if (value != null)
+        {
+            return Convert.ToDateTime(value).ToString("HH:mm");
+        }
+
+        return string.Empty;
+    }
+
+    string FormatAsHour(object value)
+    {
+        if (value != null)
+        {
+            TimeSpan ts = TimeSpan.Parse(value.ToString());
+            return ts.Hours.ToString(); // Convert.ToDateTime(value).Hour.ToString();
+        }
+
+        return string.Empty;
+    }
+
+    int retMaxValue(object value)
+    {
+        if (value != null)
+        {
+
+            return (Convert.ToInt32(value) + 50);
+        }
+        return Convert.ToInt32(value);
+    }
+
+    void ShowNotification(NotificationMessage message)
+    {
+        NotificationService.Notify(message);
+
+        //console.Log($"{message.Severity} notification");
+    }
+
+
+    //int retMaxValue(object value)
+    //{
+    //    if (value != null)
+    //    {
+
+    //        return (Convert.ToInt32(value) + 50);
+    //    }
+    //    return Convert.ToInt32(value);
+    //}
+}

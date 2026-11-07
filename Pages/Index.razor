@@ -1,0 +1,261 @@
+﻿@page "/"
+
+@using Radzen
+@using Microsoft.EntityFrameworkCore
+@using HomeControlBlazor.Models
+@using HomeControlBlazor.Services
+@using System.Globalization
+@using System.Timers;
+
+@inject NotificationService NotificationService
+@inject TooltipService tooltipService
+@inject IFVEService IFVEServices
+@inject IElectricityService ElectricityService
+@inject DialogService DialogService
+@inject NavigationManager navManager
+
+<PageTitle>BeMaLAN</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <h1>Welcome @context.User.Identity.Name</h1>
+       <br />
+        <RadzenButton Click=@(args => OnClick("Primary button")) Text="Load public data" ButtonStyle="ButtonStyle.Primary" />
+    </Authorized>
+    <NotAuthorized>
+        <h4>Hello Guest...</h4>
+        <h5>For access into additional content, you have to logon...</h5>
+        <br />
+        <RadzenButton Click=@(args => OnClick("Primary button")) Text="Load public data" ButtonStyle="ButtonStyle.Primary" />
+    </NotAuthorized>
+</AuthorizeView>
+
+@if (loadingData)
+{
+    <div class="rz-m-12">
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    </div>
+}
+else if (colElectricitySolar == null)
+{
+    @if(loadingData)
+    {
+        <div class="rz-m-12">
+            <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+        </div>
+    }
+    @* <div class="rz-m-12">
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    </div>*@
+ 
+    @*<h5>... no available data...</h5>*@
+}
+else
+{
+    <RadzenDatePicker @bind-Value=@actDateTime DateFormat="dd.MM.yyyy">
+        <FooterTemplate>
+            <RadzenButton Click=@(args => actDateTime = DateTime.Now) Text="Today" class="my-3 w-100" />
+        </FooterTemplate>
+    </RadzenDatePicker>
+    @*<h6>Last update: @lastUpdateSolar.ToString("dd.MM. HH:mm:ss")</h6>*@
+    <RadzenStack Orientation="Orientation.Horizontal" Wrap="FlexWrap.Wrap" JustifyContent="JustifyContent.Center" Class="rz-shadow-5 shadows rz-p-12" Gap="1rem">
+        <RadzenColumn Size="12" SizeXS="11" SizeSM="10" SizeMD="9" SizeLG="8" SizeXL="7" SizeXX="6" class="rz-p-5">
+            <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+                <h4>Spotřeba (Wh)</h4>
+            </RadzenRow>
+            <RadzenRow JustifyContent="JustifyContent.Normal" AlignItems="AlignItems.Normal" Gap="1rem">
+                <RadzenArcGauge>
+                    <RadzenArcGaugeScale Step="@avgElectricityPowerFVEvalue" Min="0" Max="@maxElectricityPowerFVEvalue" MinorStep="@minorSolarPowerFVEvalue" Radius="1" TickPosition="GaugeTickPosition.Outside" Y="0.9" Margin="5">
+                        <RadzenArcGaugeScaleValue Value=@valueElectricityPowerHour ShowValue=true>
+                            <Template Context="pointer">
+                                <h4>
+                                    @pointer.Value
+                                </h4>
+                            </Template>
+                        </RadzenArcGaugeScaleValue>
+                    </RadzenArcGaugeScale>
+                </RadzenArcGauge>
+            </RadzenRow>
+            @*   </RadzenRow>*@
+        </RadzenColumn>
+
+        <RadzenColumn Size="12" SizeXS="11" SizeSM="10" SizeMD="9" SizeLG="8" SizeXL="7" SizeXX="6" class="rz-p-5">
+            <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+                <h4>Výkon FVE (Wh)</h4>
+            </RadzenRow>
+            <RadzenRow JustifyContent="JustifyContent.Normal" AlignItems="AlignItems.Normal" Gap="1rem">
+                <RadzenArcGauge>
+                    <RadzenArcGaugeScale Max="@maxSolarPowerFVEvalue" Step="@avgSolarPowerFVEvalue" MinorStep="@minorSolarPowerFVEvalue" Min="0" Radius="1" TickPosition="GaugeTickPosition.Outside" Y="0.9" Margin="10">
+                        <RadzenArcGaugeScaleValue Value=@valueSolarPowerHour ShowValue=true>
+                            <Template Context="pointer">
+                                <h4>
+                                    @pointer.Value
+                                </h4>
+                            </Template>
+                        </RadzenArcGaugeScaleValue>
+                    </RadzenArcGaugeScale>
+                </RadzenArcGauge>
+            </RadzenRow>
+            @* Step="100" Min="0" Max="10000" MinorStep="250"  </RadzenRow>*@
+        </RadzenColumn>
+        </RadzenStack>
+
+<RadzenStack Orientation="Orientation.Vertical" Wrap="FlexWrap.Wrap" JustifyContent="JustifyContent.Center" Class="rz-shadow-5 shadows rz-p-12" Gap="1rem">
+    <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Center" Gap="1rem">
+        <h4>Hodinový přehled</h4>
+    </RadzenRow>
+    <RadzenRow JustifyContent="JustifyContent.Center" AlignItems="AlignItems.Normal" Gap="1rem">
+        <RadzenChart class="w-100" style="width: 100%">
+            <RadzenColumnSeries Data="@colSolarPowerHour" CategoryProperty="Hour" Title="FVE" LineType="LineType.Dashed" ValueProperty="PowerHour">
+                <RadzenSeriesDataLabels Visible="true" />
+            </RadzenColumnSeries>
+                <RadzenColumnSeries Data="@colPowerConsumptionByHour" CategoryProperty="Hour" Title="Spotřeba ČEZ" LineType="LineType.Dotted" ValueProperty="TotalConsumptionWh">
+                    <RadzenSeriesDataLabels Visible="@true" />
+                </RadzenColumnSeries>
+            <RadzenColumnOptions Radius="5" />
+            <RadzenCategoryAxis Step="1" Max="@maxSolarPowerHour">
+                <RadzenAxisTitle Text="Hodina" />
+                <RadzenGridLines Visible="true" />
+            </RadzenCategoryAxis>
+            <RadzenValueAxis>
+                <RadzenGridLines Visible="true" />
+                <RadzenAxisTitle Text="Výkon (Wh)" />
+            </RadzenValueAxis>
+            <RadzenLegend Position="LegendPosition.Bottom" />
+        </RadzenChart>
+    </RadzenRow>
+</RadzenStack>
+}
+@code{
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationState { get; set; }
+
+    IEnumerable<TblSolarPowerSystem> colElectricitySolar;
+    List<SolarRecords> colSolarPowerHour = new System.Collections.Generic.List<SolarRecords>();    
+    IEnumerable<PowerConsumptionModel> colPowerConsumptionByHour = new List<PowerConsumptionModel>();
+    //List<SolarRecords> colSolarPowerDay = new System.Collections.Generic.List<SolarRecords>();
+    IEnumerable<PowerConsumptionModel> colPowerConsumption = new List<PowerConsumptionModel>();
+    int maxSolarPowerHour = 1, maxSolarPowerFVEvalue = 1, avgSolarPowerFVEvalue = 1;
+    int maxElectricityPowerFVEvalue = 1, avgElectricityPowerFVEvalue = 1, minorElectricityPowerFVEvalue = 1;
+    double valueElectricityPowerHour = 0, valueSolarPowerHour = 0, minorSolarPowerFVEvalue = 1;
+    DateTime actDateTime = DateTime.Now;
+    bool loadingData = false;
+
+    private async Task OnClick(string text)
+    {
+        try
+        {
+            loadingData = true;
+            //protected override async Task OnInitializedAsync()
+            //{
+            //    await base.OnInitializedAsync();
+
+            colElectricitySolar = await IFVEServices.LoadRecSolarSystem(actDateTime);
+            if (colElectricitySolar != null)
+            {
+                colElectricitySolar = colElectricitySolar.OrderByDescending(date => date.SpsDateTime);
+                valueSolarPowerHour = Convert.ToDouble(colElectricitySolar.First().SpsEnergyDayAcc)*1000;
+
+                var byPowerHour = colElectricitySolar.GroupBy(r => r.SpsDateTime.Hour).Select(g => new { Hour = g.Key, PowerHour = g.Max(r => r.SpsEnergyHrAccWh) });
+                foreach (var lclValue in byPowerHour)
+                {
+                    SolarRecords lclItem = new SolarRecords();
+                    lclItem.Hour = lclValue.Hour;
+                    lclItem.PowerHour = Convert.ToDouble(lclValue.PowerHour);
+                    colSolarPowerHour.Add(lclItem);
+                }
+                //valueSolarPowerHour = colSolarPowerHour.Sum(a => a.PowerHour);
+                //maxSolarPowerFVEvalue = Convert.ToInt32(colSolarPowerHour.Max(a => a.PowerHour));
+                if (valueSolarPowerHour < 100)
+                {
+                    maxSolarPowerFVEvalue = 100;
+                    avgSolarPowerFVEvalue = 10; 
+
+                }
+                else if (valueSolarPowerHour < 1000)
+                {
+                    maxSolarPowerFVEvalue = 1000;
+                    avgSolarPowerFVEvalue = 100;
+                }
+                else if (valueSolarPowerHour < 5000)
+                {
+                    maxSolarPowerFVEvalue = 5000;
+                    avgSolarPowerFVEvalue = 1000;
+                }
+                else
+                {
+                    maxSolarPowerFVEvalue = 10000;
+                    avgSolarPowerFVEvalue = 2500;
+                }
+
+                minorSolarPowerFVEvalue = avgSolarPowerFVEvalue / 2;
+                //maxSolarPowerHour = byPowerDay.Max(item => item.Hour) + 1;
+
+                //var byPowerDay = colElectricitySolar.GroupBy(r => r.SpsDateTime.Hour).Select(g => new { Hour = g.Key, PowerDay = g.Max(r => r.SpsEnergyDayAcc) });
+                //foreach (var lclValue in byPowerDay)
+                //{
+                //    SolarRecords lclItem = new SolarRecords();
+                //    lclItem.Hour = lclValue.Hour;
+                //    lclItem.PowerDay = Convert.ToDouble(lclValue.PowerDay * 1000);
+                //    colSolarPowerDay.Add(lclItem);
+                //}
+                //maxSolarPowerHour = byPowerDay.Max(item => item.Hour) + 1;
+
+            }
+
+            colPowerConsumptionByHour = await ElectricityService.LoadPowerConsumptionByHour(actDateTime);
+
+            colPowerConsumption = await ElectricityService.LoadPowerConsumptionByDay(actDateTime);
+            if (colPowerConsumption != null)
+            {
+                valueElectricityPowerHour = Convert.ToDouble(colPowerConsumption.Sum(a => a.TotalConsumptionWh));
+
+                if (valueElectricityPowerHour < 100)
+                {
+                    maxElectricityPowerFVEvalue = 100;
+                    avgElectricityPowerFVEvalue = 10;
+
+                }
+                else if (valueElectricityPowerHour < 1000)
+                {
+                    maxElectricityPowerFVEvalue = 1000;
+                    avgElectricityPowerFVEvalue = 100;
+                }
+                else if (valueElectricityPowerHour < 5000)
+                {
+                    maxElectricityPowerFVEvalue = 5000;
+                    avgElectricityPowerFVEvalue = 1000;
+                }
+                else if (valueElectricityPowerHour < 10000)
+                {
+                    maxElectricityPowerFVEvalue = 10000;
+                    avgElectricityPowerFVEvalue = 2500;
+                }
+                else if (valueElectricityPowerHour < 15000)
+                {
+                    maxElectricityPowerFVEvalue = 15000;
+                    avgElectricityPowerFVEvalue = 5000;
+                }
+
+                minorElectricityPowerFVEvalue = avgElectricityPowerFVEvalue / 2;
+            }
+
+
+
+            valueElectricityPowerHour = Convert.ToDouble(colPowerConsumption.Sum(a => a.TotalConsumptionWh));
+            maxSolarPowerHour = colPowerConsumption.Max(item => item.Hour) + 1;
+        }
+        catch(Exception ex)
+        {
+            string err = ex.Message;
+            NotificationMessage msg = new NotificationMessage { Severity = NotificationSeverity.Error, Summary = "Error", Detail = ex.Message, Duration = 5000 };
+            NotificationService.Notify(msg);
+        }
+        finally
+        {
+            loadingData = false;            
+        }
+    }
+
+   
+}

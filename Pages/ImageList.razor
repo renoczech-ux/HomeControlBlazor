@@ -1,0 +1,109 @@
+﻿@page "/imagelist"
+
+@using HomeControlBlazor.Models
+@using HomeControlBlazor.Services
+@inject IImageRespository ImgeRepo
+
+<h1>Informace o vozidle</h1>
+<h2>Cena k jednání: 330.000,- CZK</h2>
+
+<h5><u>Obecné</u></h5>
+<div class="rz-border-base-500">
+ 
+    <h6>
+        Značka: Hyundai<br />
+        Model: ix35  (Facelift 2013)<br />
+        Modelový rok výroby: 2015<br />
+    </h6>
+</div>
+<br />
+<h5><u>Motor</u></h5>
+<div class="rz-border-base-500">
+   
+    <h6>
+        Zdvihový objem (ccm): 1685<br />
+        Výkon motoru (kW): 85<br />
+        Výkon motoru (HP): 114<br />
+        Palivo - primární: Diesel<br />
+        Motor (vše): 1.7 CRDi (115 Hp)<br />
+        Kód motoru: D4FD<br />
+        Převodovka: Manual/Standard<br />
+        Počet převodů: 6<br />
+        Emisní standard: Euro 5<br />
+    </h6>
+</div>
+<br />
+<h5><u>Datumy</u></h5>
+<div class="rz-border-base-500">
+
+    <h6>
+
+        Datum výroby: 2015-01-01<br />
+        Datum registrace: 2015-06-18<br />
+    </h6>
+</div>
+<br />
+<h5><u>Historie vozidla</u></h5>
+<div class="rz-border-base-500">
+   
+    <h6>
+        Stav tachometru (km): <br />
+        2021-08-17 -
+        99 591 km<br />
+        2022-03-28 -
+        100 653 km<br />
+        2023-06-04 - 101 xxx km<br />
+
+    </h6>
+</div>
+<br />
+<h5><u>Výbava</u></h5>
+<div class="rz-border-base-500">
+   
+    <h6> ... bude doplněno ... </h6>
+</div>
+
+<style>
+    .shadows div {
+        padding: 1rem;
+        width: 10rem;
+        text-align: center;
+    }
+</style>
+<br/>
+<h5><u>Fotogalerie</u></h5>
+@*<input type="button" id="btnGet" value="Get Images" @onclick="GetImages" />*@
+<div class="container rz-border-base-500">
+    @if (imageList == null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var img in imageList)
+            {
+                <div class="col-sm-4">
+                    <a href="https://www.bemalan.cz/home/@img.Path" class="tile purple">
+                        <h6 class="title">@img.Name</h6>
+                        <img src="@img.ThumbnailPath" style="width:200px;height:200px;">
+                    </a>
+                </div>
+            }
+        </div>
+    }
+</div>
+@code {
+    private List<ImageModel>? imageList;
+
+    protected override async Task OnInitializedAsync()
+    {
+        imageList = await ImgeRepo.GetImages("Hyundai");
+    }
+
+    protected void GetImages()
+    {
+        ////get the images list from the services, you can also use HttpClient to call the API method and get the images
+        //imageList = ImgeRepo.GetImages();
+    }
+} 

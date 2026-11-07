@@ -1,0 +1,160 @@
+﻿@page "/tatka"
+@attribute [Authorize(Roles = "Administrator, tatka")]
+
+@using HomeControlBlazor.Models
+@using HomeControlBlazor.Services
+@inject IImageRespository ImgeRepo
+@inject Radzen.DialogService DialogServices
+
+<h3>Navždy náš ...</h3>
+
+
+    @if (imageList == null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+            
+             <RadzenStack Orientation="Orientation.Horizontal" Wrap="FlexWrap.Wrap" JustifyContent="JustifyContent.Center" Class="rz-shadow-5 shadows rz-text-align-center rz-p-5" Gap="1rem">
+                 <h4>Fotogalerie</h4>
+            @foreach (var img in imageList)
+            {
+                <div class="col-sm-4">
+
+                <RadzenButton Click="@((args) => OnClick(args, @img.Path, @img.Description))" ButtonStyle="ButtonStyle.Light" Style="margin-bottom: 20px; width:200px;height:200px;">
+                        <RadzenImage Path="@img.ThumbnailPath" Style="width:100%" />
+                    </RadzenButton>
+                </div>
+            }
+ 
+        </RadzenStack>
+
+         <RadzenStack Orientation="Orientation.Horizontal" Wrap="FlexWrap.Wrap" JustifyContent="JustifyContent.Center" Class="rz-shadow-5 shadows rz-text-align-center rz-p-5" Gap="1rem">
+           <h4>Video</h4>
+            @foreach (var videoFiles in videoFileList)
+            {
+                <div class="col-sm-4">
+                <RadzenButton Click="@((args) => OnClickSound(args, @videoFiles.Path))" ButtonStyle="ButtonStyle.Light" Style="margin-bottom: 20px; width:200px;height:200px;">
+                    <RadzenImage Path="@videoFiles.Path" Style="width:100%" />
+                    </RadzenButton>
+                </div>
+            }
+          
+        </RadzenStack>
+
+        <RadzenStack Orientation="Orientation.Horizontal" Wrap="FlexWrap.Wrap" JustifyContent="JustifyContent.Center" Class="rz-shadow-5 shadows rz-text-align-center rz-p-5" Gap="1rem">
+            @*<div class="row">*@
+            <h4>Zvuk</h4>
+            @foreach (var img in soundFileList)
+            {
+                <div class="col-sm-4">
+                    @*     <a href="http://www.bemalan.cz/home/@img.Path" class="tile purple">
+            <h6 class="title">@img.Name</h6>
+            <img src="@img.ThumbnailPath" style="width:200px;height:200px;">
+            </a>*@
+                    <RadzenButton Click="@((args) => OnClickSound(args, @img.Path))" ButtonStyle="ButtonStyle.Light" Style="margin-bottom: 20px; width:200px;height:200px;">
+                        <RadzenImage Path="@img.Path" Style="width:100%" />
+                    </RadzenButton>
+                </div>
+            }
+            @* </div>*@
+        </RadzenStack>
+    }
+
+@code 
+{
+    // <div class="container">
+    private List<ImageModel>? imageList;
+    private List<SoundFileModel>? soundFileList;
+    private List<VideoFileModel>? videoFileList;
+
+    protected override async Task OnInitializedAsync()
+    {
+        imageList = await ImgeRepo.GetImages("tatka");
+        soundFileList = await ImgeRepo.GetSoundFiles("tatka");
+        videoFileList = await ImgeRepo.GetVideoFiles("tatka");
+    }
+
+    private async Task OpenDialog(string text)
+    {
+        var parameters = new Dictionary<string, object> { { "ImgURL", "https://example.com/image.jpg" } };
+        // var dialogResult = await DialogService.OpenAsync<ImageViewer>("Image Viewer", parameters);
+    }
+
+    private void OnClick2(EventArgs args, string ImgPath)
+    {
+        DialogServices.Open("Fotogalerie", ds =>
+    @<RadzenStack AlignItems="AlignItems.Center" Class="rz-mx-auto rz-my-12">
+        <RadzenImage Path=@ImgPath Style="width: 100%;" />
+        <RadzenButton Text="Zavřít" Click="() => ds.Close(false)" ButtonStyle="ButtonStyle.Info" CloseDialogOnOverlayClick="true" Draggable="true" />
+    </RadzenStack>
+        );
+    }
+
+    private async Task OnClick(EventArgs args, string ImgPath, string Description)
+    {
+        await DialogServices.OpenAsync("Fotogalerie", ds =>
+    @<RadzenStack AlignItems="AlignItems.Center" Class="rz-mx-auto rz-my-12">
+        <RadzenImage Path=@ImgPath Style="width: 100%;" />
+        <RadzenText TextStyle="TextStyle.Body1">@Description</RadzenText>
+        <RadzenButton Text="Zavřít" Click="() => ds.Close(false)" ButtonStyle="ButtonStyle.Info" CloseDialogOnOverlayClick="true" Draggable="true" />
+        </RadzenStack>
+    );
+
+        // Class="mr-1"
+
+        // await DialogService.OpenAsync<ImageViewer>("Zobraz img",  Dictionary<string, object> { { "imgURL", text } });
+        // await DialogService.OpenAsync<ImageViewer>("Zobraz img",    new Dictionary<string, object>() { { "Ordine", text } }, new DialogOptions() { Width = "90%", Height = "95%", Resizable = false, Draggable = false });
+
+        //await DialogService.OpenAsync<ImageViewer>($"Actions", options: new SideDialogOptions { CloseDialogOnOverlayClick = closeDialogOnOverlayClick, Position = position, ShowMask = showMask });
+
+        //colOTE = await OTEService.LoadRecByDate(value);
+        //if (colOTE != null)
+        //{
+        //    foreach (TblOte item in colOTE)
+        //    {
+        //        if (item.OteExchangeRate == null)
+        //        {
+        //            item.OteExchangeRate = Convert.ToDecimal("24,5");
+        //        }
+        //        item.customOTEPriceCZK = Convert.ToDecimal(item.OtePrice * item.OteExchangeRate);
+        //    }
+        //}
+    }
+
+    private async Task OnClickSound(EventArgs args, string ImgPath)
+    {
+        await DialogServices.OpenAsync("Zvukové stopy", ds =>
+    @<RadzenStack AlignItems="AlignItems.Center" Class="rz-mx-auto rz-my-12">
+         <audio controls>    
+           <source src="@ImgPath" type="audio/mp4">
+        </audio>
+        <RadzenButton Text="Zavřít" Click="() => ds.Close(false)" ButtonStyle="ButtonStyle.Info" CloseDialogOnOverlayClick="true" Draggable="true" />
+    </RadzenStack>
+    );
+    }
+
+    async Task EditSkill(string text)
+    {
+        await DialogServices.OpenAsync("Edit Skill", ds =>
+    //@<RadzenCard>
+        //  <div>
+        //    <p class="mb-4">Skill ID <b>1</b></p>
+            //    <div class="row">
+            //        <div class="col">
+            //            <RadzenButton Text="Ok" Click="() => ds.Close(true)" Class="mr-1"
+            //                Style="width: 80px;" />
+            //            <RadzenButton Text="Cancel" Click="() => ds.Close(false)"
+            //                ButtonStyle="ButtonStyle.Secondary" Class="mr-1" />
+            //        </div>
+            //    </div>
+            //</div>
+            //</RadzenCard>);
+
+    @<RadzenStack AlignItems="AlignItems.Center" Class="rz-mx-auto rz-my-12">
+        <RadzenImage Path="https://www.bemalan.cz/home/images/tatka/01.jpg" Style="width: 100%;" />
+        <RadzenButton Text="Zavřít" Click="() => ds.Close(false)" ButtonStyle="ButtonStyle.Secondary" Class="mr-1" />
+    </RadzenStack>);
+    }
+}

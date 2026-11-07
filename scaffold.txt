@@ -1,0 +1,38 @@
+﻿Scaffold-DbContext -Connection "Server=mokos.bemalan.local;Database=Home;User ID=sa;Password=Abc.123;Trusted_Connection=True;TrustServerCertificate=True;" -Provider Microsoft.EntityFrameworkCore.SqlServer -OutputDir Models -context AppDBContext -Project HomeControlBlazor -force
+
+TblOTE.cs:
+   [NotMapped]
+    public decimal customOTEPriceCZK { get; set; }
+
+vlastni classes do AppDBContextu:
+public virtual DbSet<OTEPricing> OTEPricings { get; set; }   
+public virtual DbSet<PowerConsumptionModel> PowerConsumption { get; set; }
+public virtual DbSet<AKUTempHistoryModel> AKUTempHistory { get; set; }
+
+    Login example:
+    https://www.youtube.com/watch?v=iq2btD9WufI 
+
+
+    App.razor:
+    
+@*<CascadingAuthenticationState>
+
+<Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <PageTitle>Not found</PageTitle>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <p role="alert">Sorry, there's nothing at this address.</p>
+        </LayoutView>
+    </NotFound>
+</Router>
+</CascadingAuthenticationState>*@
+
+Image resize online tool: 
+https://www.iloveimg.com/resize-image#resize-options,pixels
+
+ChatGPT API key:
+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

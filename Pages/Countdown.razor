@@ -1,0 +1,43 @@
+﻿@page "/countdown"
+
+<h3>Zkušební termíny volají... :) </h3>
+<p>Zkouška statistika - 1.termín: @deadlineSTA1st.ToString("g")</p>
+<p>Zkouška za: @timeRemainingSTA1st.Days dní (dnů), @timeRemainingSTA1st.Hours hodin(y), @timeRemainingSTA1st.Minutes minut(y), @timeRemainingSTA1st.Seconds vteřin</p>
+
+
+@code 
+{
+   
+    private DateTime deadlineSTA1st = new DateTime(2024, 1, 6, 09, 30, 0); // Set your deadline here
+    private TimeSpan timeRemainingSTA1st;
+    private System.Timers.Timer timer;
+
+    protected override void OnInitialized()
+    {
+        UpdateTimeRemaining();
+        timer = new System.Timers.Timer(1000); // Timer ticks every second
+        timer.Elapsed += Timer_Elapsed;
+        timer.Start();
+    }
+
+    private void Timer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+    {
+        UpdateTimeRemaining();
+        if (timeRemainingSTA1st.TotalSeconds <= 0)
+        {
+            timer.Stop();
+        }
+    }
+
+    private void UpdateTimeRemaining()
+    {
+        timeRemainingSTA1st = deadlineSTA1st - DateTime.Now;
+        InvokeAsync(StateHasChanged); // Update the UI
+    }
+
+    public void Dispose()
+    {
+        timer?.Dispose();
+    }
+   
+}

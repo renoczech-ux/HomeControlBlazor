@@ -1,0 +1,494 @@
+﻿@page "/otev2"
+@using Radzen
+@using Microsoft.EntityFrameworkCore
+@using HomeControlBlazor.Models
+@using HomeControlBlazor.Services
+@using System.Linq
+@using Microsoft.AspNetCore.Components.Web
+@implements IDisposable
+
+@inject IOTEService OTEService
+
+<h3>OTE</h3>
+
+@if (colOTEPricing != null)
+{
+    <!-- ============ Radial Gauge s EUR/CZK + Min/Avg/Max ============ -->
+    <RadzenStack class="rz-p-0 rz-p-md-6 rz-p-lg-12" AlignItems="AlignItems.Center">
+        <RadzenCard Variant="Variant.Outlined" Style="width:100%;max-width:860px;">
+
+            <!-- 2 řádky: (1) Min+Max, (2) Avg + měna -->
+            <RadzenStack Orientation="Orientation.Vertical" Gap="0.5rem" class="rz-mt-3 rz-mb-1" Style="width:100%;">
+                <!-- Řádek 1 -->
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" class="rz-wrap">
+                    <RadzenBadge Text="@( $"Min: {FormatValue(dayMin)} {UnitSuffix}" )" Style="font-weight:600;" />
+                    <RadzenBadge Text="@( $"Max: {FormatValue(dayMax)} {UnitSuffix}" )" Style="font-weight:600;" />
+                </RadzenStack>
+
+                <!-- Řádek 2 -->
+                <RadzenStack Orientation="Orientation.Horizontal"
+                              AlignItems="AlignItems.Center"
+                              JustifyContent="JustifyContent.SpaceBetween"
+                              Gap="0.75rem"
+                              class="rz-wrap"
+                              Style="width:100%;">
+                    <RadzenBadge Text="@( $"Avg: {FormatValue(dayAvg)} {UnitSuffix}" )" Style="font-weight:600;" />
+
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                        <RadzenLabel Text="Měna" Component="unitDropDown" />
+                        <RadzenDropDown Name="unitDropDown"
+                                        TValue="PriceUnit"
+                                        @bind-Value="selectedUnit"
+                                        Change="@OnUnitChanged"
+                                        Data="@(Enum.GetValues<PriceUnit>())"
+                                        Style="width: 120px;" />
+                    </RadzenStack>
+                </RadzenStack>
+            </RadzenStack>
+        </RadzenCard>
+
+        <RadzenRadialGauge Style="width: 100%; height: 360px;">
+            <RadzenRadialGaugeScale StartAngle="-150"
+                                    EndAngle="150"
+                                    Step="@gaugeStep"
+                                    Min="@gaugeMin"
+                                    Max="@gaugeMax"
+                                    TickPosition="GaugeTickPosition.Outside">
+                <RadzenRadialGaugeScalePointer Value="@gaugeValue" Length="0.6" ShowValue="@showValue">
+                    <Template Context="pointer">
+                        <RadzenStack AlignItems="AlignItems.Center" Gap="0" class="rz-mt-4">
+                            <RadzenText TextStyle="TextStyle.H5" class="rz-m-0">
+                                <strong>@FormatValue(pointer.Value)</strong>
+                            </RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption">@UnitSuffix</RadzenText>
+                        </RadzenStack>
+                    </Template>
+                </RadzenRadialGaugeScalePointer>
+
+                <RadzenRadialGaugeScaleRange From="@gaugeMin" To="@zone1Max" Fill="green" />
+                <RadzenRadialGaugeScaleRange From="@zone1Max" To="@zone2Max" Fill="orange" />
+                <RadzenRadialGaugeScaleRange From="@zone2Max" To="@gaugeMax" Fill="red" />
+            </RadzenRadialGaugeScale>
+        </RadzenRadialGauge>
+
+        <RadzenText TextStyle="TextStyle.Caption" class="rz-mt-2">
+            @statusText
+        </RadzenText>
+    </RadzenStack>
+
+    <RadzenButton Click="@OnLoadClick" Text="Nacist" ButtonStyle="ButtonStyle.Primary" />
+    <div class="rz-p-12 rz-text-align-center">
+        <RadzenDatePicker @bind-Value="value" DateFormat="dd.MM.yyyy" />
+    </div>
+
+    <!-- Graf HODIN -->
+    <div class="rz-p-0 rz-p-md-12">
+        <RadzenChart>
+            <RadzenColumnSeries Data="@pricingByHourVm" CategoryProperty="DisplayHour" ValueProperty="OtePrice">
+                <RadzenSeriesDataLabels Visible="true" />
+            </RadzenColumnSeries>
+            <RadzenColumnOptions Radius="5" Width="15" />
+            <RadzenCategoryAxis Min="@hourMin" Max="@hourMax" Step="@hourStep" Padding="10">
+                <RadzenGridLines Visible="true" />
+                <RadzenAxisTitle Text="hodina" />
+            </RadzenCategoryAxis>
+            <RadzenValueAxis Min="@valueMin" Max="@valueMax" Step="@valueStep">
+                <RadzenGridLines Visible="true" />
+                <RadzenAxisTitle Text="Kč/MWh" />
+            </RadzenValueAxis>
+            <RadzenLegend Visible="false" />
+        </RadzenChart>
+    </div>
+
+    <!-- Graf INTERVALŮ (DateTime osa X) -->
+    <RadzenChart>
+        <RadzenColumnSeries Data="@pricingByIntervalVm"
+                            CategoryProperty="CategoryTime"
+                            ValueProperty="OtePriceInterval">
+            <RadzenSeriesDataLabels Visible="false" />
+        </RadzenColumnSeries>
+
+        <RadzenColumnOptions Radius="1" Width="5" Margin="5" />
+        <RadzenCategoryAxis LabelAutoRotation="-90"
+                            Padding="40"
+                            FormatString="{0:HH:mm}">
+            <RadzenGridLines Visible="true" />
+            <RadzenAxisTitle Text="interval" />
+        </RadzenCategoryAxis>
+
+        <RadzenValueAxis Min="@valueMinInt" Max="@valueMaxInt" Step="@valueStepInt">
+            <RadzenGridLines Visible="true" />
+            <RadzenAxisTitle Text="Kč/MWh" />
+        </RadzenValueAxis>
+
+        <RadzenLegend Visible="false" />
+    </RadzenChart>
+}
+
+@code {
+    // ===== Data =====
+    private IEnumerable<OTEPricing> colOTEPricing = Enumerable.Empty<OTEPricing>();
+    private DateTime value = DateTime.Now;
+
+    // ===== Hodinový graf =====
+    private class HourVm
+    {
+        public int DisplayHour { get; set; }
+        public decimal OtePrice { get; set; }
+        public decimal OtePriceMWh { get; set; }
+    }
+    private List<HourVm> pricingByHourVm = new();
+    private List<OTEPricing> pricingByHour = new();
+
+    private int hourMin = 0, hourMax = 1, hourStep = 1;
+    private decimal valueMin = 0m, valueMax = 1m, valueStep = 1m;
+
+    // ===== Intervalový graf =====
+    private sealed class IntervalVm
+    {
+        public int IntervalIndex { get; set; }       // 0..95
+        public DateTime CategoryTime { get; set; }   // HH:mm
+        public decimal OtePriceInterval { get; set; }
+    }
+    private List<IntervalVm> pricingByIntervalVm = new();
+
+    private decimal valueMinInt = 0m, valueMaxInt = 1m, valueStepInt = 1m;
+
+    // ===== Gauge =====
+    private enum PriceUnit { EUR, CZK }
+    private PriceUnit selectedUnit = PriceUnit.EUR;
+
+    private bool showValue = true;
+    private IEnumerable<GaugeTickPosition> tickPositions = Enum.GetValues(typeof(GaugeTickPosition)).Cast<GaugeTickPosition>();
+    private GaugeTickPosition tickPosition = GaugeTickPosition.Inside;
+
+    private double gaugeValue = 0, gaugeMin = 0, gaugeMax = 1, gaugeStep = 10;
+    private double zone1Max = 0, zone2Max = 0;
+    private double dayMin = 0, dayAvg = 0, dayMax = 0;
+    private string statusText = string.Empty;
+
+    // Timer
+    private System.Threading.PeriodicTimer? _timer;
+    private CancellationTokenSource? _cts;
+    private bool _timerStarted = false;
+
+    // ===== Lifecycle =====
+    protected override async Task OnInitializedAsync()
+    {
+        colOTEPricing = await OTEService.LoadOTEByDate(DateTime.Now) ?? Enumerable.Empty<OTEPricing>();
+        BuildChartDatasets();
+        RecalcGaugeScale(value);
+        await UpdateGaugeAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_timerStarted)
+        {
+            _timerStarted = true;
+            _cts = new CancellationTokenSource();
+            _timer = new System.Threading.PeriodicTimer(TimeSpan.FromMinutes(1));
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    while (await _timer!.WaitForNextTickAsync(_cts!.Token))
+                    {
+                        await InvokeAsync(async () =>
+                        {
+                            RecalcGaugeScale(value);
+                            await UpdateGaugeAsync();
+                            StateHasChanged();
+                        });
+                    }
+                }
+                catch (OperationCanceledException) { }
+            });
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    public void Dispose()
+    {
+        try { _cts?.Cancel(); } catch { }
+        _cts?.Dispose();
+        _timer?.Dispose();
+    }
+
+    // ===== UI handlers =====
+    private Task OnLoadClick(MouseEventArgs _args) => OnClick("Nacist");
+
+    private async Task OnClick(string _)
+    {
+        colOTEPricing = await OTEService.LoadOTEByDate(value) ?? Enumerable.Empty<OTEPricing>();
+        BuildChartDatasets();
+        RecalcGaugeScale(value);
+        await UpdateGaugeAsync();
+        StateHasChanged();
+    }
+
+    private async Task OnUnitChanged(object? _)
+    {
+        RecalcGaugeScale(value);
+        await UpdateGaugeAsync();
+        StateHasChanged();
+    }
+
+    // ===== Build datasets =====
+    private void BuildChartDatasets()
+    {
+        var data = colOTEPricing?.ToList() ?? new();
+
+        // Hodiny
+        pricingByHour = data
+            .GroupBy(x => x.OteHour)
+            .Select(g => g.First())
+            .OrderBy(x => x.OteHour)
+            .ToList();
+
+        var minHourSrc = pricingByHour.Any() ? pricingByHour.Min(x => x.OteHour) : 0;
+        var maxHourSrc = pricingByHour.Any() ? pricingByHour.Max(x => x.OteHour) : 1;
+        bool zeroBased = (minHourSrc == 0 && maxHourSrc == 23);
+
+        pricingByHourVm = pricingByHour
+            .Select(x => new HourVm
+            {
+                DisplayHour = zeroBased ? x.OteHour + 1 : x.OteHour,
+                OtePrice = x.OtePrice,
+                OtePriceMWh = x.OtePriceMWh
+            })
+            .OrderBy(x => x.DisplayHour)
+            .ToList();
+
+        hourMin = pricingByHourVm.Any() ? pricingByHourVm.Min(x => x.DisplayHour) : 0;
+        hourMax = pricingByHourVm.Any() ? pricingByHourVm.Max(x => x.DisplayHour) : 1;
+        hourStep = 1;
+
+        if (pricingByHourVm.Any())
+        {
+            var yMin = pricingByHourVm.Min(x => x.OtePrice);
+            var yMax = pricingByHourVm.Max(x => x.OtePrice);
+            (valueMin, valueMax, valueStep) = NiceAxis(yMin, yMax);
+        }
+        else { valueMin = 0m; valueMax = 1m; valueStep = 1m; }
+
+        // Intervaly (DateTime kategorie)
+        var rawIntervals = data
+            .Select(x =>
+            {
+                var idx = ParseIntervalIndex(x.OteInterval, x.OteDate);
+                return new IntervalVm
+                {
+                    IntervalIndex = idx,
+                    CategoryTime = x.OteDate.Date.AddMinutes(idx * 15),
+                    OtePriceInterval = AsDec(x.OtePriceInterval)
+                };
+            })
+            .ToList();
+
+        pricingByIntervalVm = rawIntervals
+            .GroupBy(i => i.IntervalIndex)
+            .Select(g => g.First())
+            .OrderBy(i => i.IntervalIndex)
+            .ToList();
+
+        if (pricingByIntervalVm.Any())
+        {
+            var yMinI = pricingByIntervalVm.Min(x => x.OtePriceInterval);
+            var yMaxI = pricingByIntervalVm.Max(x => x.OtePriceInterval);
+            (valueMinInt, valueMaxInt, valueStepInt) = NiceAxis(yMinI, yMaxI);
+        }
+        else
+        {
+            valueMinInt = 0m; valueMaxInt = 1m; valueStepInt = 1m;
+        }
+    }
+
+    // ===== Gauge logic =====
+    private string UnitSuffix => selectedUnit == PriceUnit.EUR ? "EUR/MWh" : "CZK/MWh";
+
+    private async Task UpdateGaugeAsync()
+    {
+        var now = DateTime.Now;
+        var target = value.Date == DateTime.Today ? now : value.Date.Add(now.TimeOfDay);
+
+        if (selectedUnit == PriceUnit.EUR)
+        {
+            var (ok, eur, label) = TryGetCurrentIntervalEUR(target);
+            if (ok) { gaugeValue = (double)eur; statusText = $"15min cena @ {label} (EUR/MWh)"; }
+            else
+            {
+                var (okH, eurH, hour) = TryGetCurrentHourEUR(target);
+                gaugeValue = okH ? (double)eurH : gaugeMin;
+                statusText = okH ? $"Hodinová cena @ {hour:HH}:00 (EUR/MWh)" : "Data pro aktuální čas nejsou k dispozici.";
+            }
+        }
+        else
+        {
+            var (ok, czk, label) = TryGetCurrentIntervalCZK(target);
+            if (ok) { gaugeValue = (double)czk; statusText = $"15min cena @ {label} (CZK/MWh)"; }
+            else
+            {
+                var (okH, czkH, hour) = TryGetCurrentHourCZK(target);
+                gaugeValue = okH ? (double)czkH : gaugeMin;
+                statusText = okH ? $"Hodinová cena @ {hour:HH}:00 (CZK/MWh)" : "Data pro aktuální čas nejsou k dispozici.";
+            }
+        }
+
+        await Task.CompletedTask;
+    }
+
+    private void RecalcGaugeScale(DateTime day)
+    {
+        var dayData = colOTEPricing?.Where(x => x.OteDate.Date == day.Date).ToList() ?? new();
+
+        List<decimal> series;
+        if (selectedUnit == PriceUnit.EUR)
+        {
+            var eurIntervals = dayData.Where(x => x.OtePriceInterval.HasValue)
+                                      .Select(x => x.OtePriceInterval!.Value).ToList();
+            var eurHours = dayData.Select(x => x.OtePrice).ToList();
+            series = eurIntervals.Count > 0 ? eurIntervals : eurHours;
+        }
+        else
+        {
+            var czkIntervals = dayData.Where(x => x.OtePriceInterval.HasValue && x.OteExchangeRate != 0)
+                                      .Select(x => x.OtePriceInterval!.Value * (x.OteExchangeRate == 0 ? 1 : x.OteExchangeRate)).ToList();
+            var czkHours = dayData.Select(x => x.OtePriceMWh).ToList();
+            series = czkIntervals.Count > 0 ? czkIntervals : czkHours;
+        }
+
+        if (series.Count == 0)
+        {
+            gaugeMin = 0; gaugeMax = 1; gaugeStep = 1;
+            zone1Max = 0.33; zone2Max = 0.66;
+            dayMin = 0; dayAvg = 0; dayMax = 0;
+            return;
+        }
+
+        var min = series.Min();
+        var max = series.Max();
+        var avg = series.Average();
+
+        dayMin = (double)min; dayAvg = (double)avg; dayMax = (double)max;
+
+        var span = (max - min);
+        if (span == 0) span = Math.Max(10m, max == 0 ? 10m : max * 0.1m);
+        var pad = Math.Max(5m, span * 0.1m);
+
+        var niceMin = Math.Floor((double)(min - pad));
+        var niceMax = Math.Ceiling((double)(max + pad));
+
+        gaugeMin = Math.Max(0, niceMin);
+        gaugeMax = niceMax <= gaugeMin ? gaugeMin + 1 : niceMax;
+        gaugeStep = NiceStep((gaugeMax - gaugeMin) / 8.0);
+
+        zone1Max = gaugeMin + (gaugeMax - gaugeMin) / 3.0;
+        zone2Max = gaugeMin + 2.0 * (gaugeMax - gaugeMin) / 3.0;
+    }
+
+    // ===== Helpers =====
+    private static int ParseIntervalIndex(object? interval, DateTime date)
+    {
+        if (interval is string s)
+        {
+            var dash = s.Contains('–') ? '–' : '-';
+            var left = s.Split(dash)[0].Trim();
+            if (TimeSpan.TryParse(left, out var ts))
+                return ts.Hours * 4 + (ts.Minutes / 15);
+        }
+        if (interval is int i) return Math.Clamp(i, 0, 95);
+        return 0;
+    }
+
+    private static decimal AsDec(decimal? v, decimal fallback = 0m) => v ?? fallback;
+
+    private static (decimal min, decimal max, decimal step) NiceAxis(decimal rawMin, decimal rawMax)
+    {
+        if (rawMax < rawMin) (rawMin, rawMax) = (rawMax, rawMin);
+        if (rawMax == rawMin) rawMax = rawMin + 1m;
+
+        var step = NiceStep((double)((rawMax - rawMin) / 8m));
+        var min = Math.Floor((double)rawMin / step) * step;
+        var max = Math.Ceiling((double)rawMax / step) * step;
+
+        return ((decimal)min, (decimal)max, (decimal)step);
+    }
+
+    private static double NiceStep(double raw)
+    {
+        if (raw <= 0) return 1;
+        var pow = Math.Pow(10, Math.Floor(Math.Log10(raw)));
+        var norm = raw / pow;
+        var nice = norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10;
+        return nice * pow;
+    }
+
+    private (bool ok, decimal price, string label) TryGetCurrentIntervalEUR(DateTime target)
+    {
+        var (start, end, left, right) = IntervalBounds(target);
+        var item = FindIntervalItem(target.Date, left, right);
+        if (item != null && item.OtePriceInterval.HasValue)
+            return (true, item.OtePriceInterval.Value, $"{left}–{right}");
+        return (false, 0m, $"{left}–{right}");
+    }
+
+    private (bool ok, decimal price, DateTime hour) TryGetCurrentHourEUR(DateTime target)
+    {
+        var hour = target.Date.AddHours(target.Hour);
+        var item = colOTEPricing?
+            .Where(x => x.OteDate.Date == target.Date && x.OteHour == hour.Hour)
+            .OrderBy(x => x.OteHour)
+            .FirstOrDefault();
+        if (item != null) return (true, item.OtePrice, hour);
+        return (false, 0m, hour);
+    }
+
+    private (bool ok, decimal price, string label) TryGetCurrentIntervalCZK(DateTime target)
+    {
+        var (start, end, left, right) = IntervalBounds(target);
+        var item = FindIntervalItem(target.Date, left, right);
+        if (item != null && item.OtePriceInterval.HasValue)
+        {
+            var rate = item.OteExchangeRate == 0 ? 1 : item.OteExchangeRate;
+            return (true, item.OtePriceInterval.Value * rate, $"{left}–{right}");
+        }
+        return (false, 0m, $"{left}–{right}");
+    }
+
+    private (bool ok, decimal price, DateTime hour) TryGetCurrentHourCZK(DateTime target)
+    {
+        var hour = target.Date.AddHours(target.Hour);
+        var item = colOTEPricing?
+            .Where(x => x.OteDate.Date == target.Date && x.OteHour == hour.Hour)
+            .OrderBy(x => x.OteHour)
+            .FirstOrDefault();
+        if (item != null) return (true, item.OtePriceMWh, hour);
+        return (false, 0m, hour);
+    }
+
+    private static (DateTime start, DateTime end, string left, string right) IntervalBounds(DateTime dt)
+    {
+        var start = dt.AddMinutes(-(dt.Minute % 15)).AddSeconds(-dt.Second).AddMilliseconds(-dt.Millisecond);
+        var end = start.AddMinutes(15);
+        return (start, end, start.ToString("HH:mm"), end.ToString("HH:mm"));
+    }
+
+    private OTEPricing? FindIntervalItem(DateTime day, string left, string right)
+    {
+        return colOTEPricing?
+            .Where(x => x.OteDate.Date == day && !string.IsNullOrWhiteSpace(x.OteInterval))
+            .FirstOrDefault(x =>
+            {
+                var s = x.OteInterval!.Replace('–', '-').Trim();
+                return s.StartsWith(left) && s.Contains(right);
+            });
+    }
+
+    private static string FormatValue(double v) => v.ToString("N2");
+}
+
+
+
+

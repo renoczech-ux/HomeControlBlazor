@@ -1,0 +1,256 @@
+﻿@page "/electricity"
+@attribute [Authorize(Roles ="Administrator")]
+
+@using Radzen
+@using Microsoft.EntityFrameworkCore
+@using HomeControlBlazor.Models
+@using HomeControlBlazor.Services
+@using System.Globalization
+
+@inject NotificationService NotificationService
+@inject TooltipService tooltipService
+@inject IElectricityService IElectricityService
+@inject DialogService DialogService
+
+@if (colElectricity == null)
+{
+    <div class="rz-m-12">
+        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    </div>
+}
+else
+{
+    <h4>CEZ</h4>
+    <h6>Last update: @lastUpdateCEZ.ToString("dd.MM. HH:mm:ss")</h6>
+    <RadzenStack Orientation="Orientation.Horizontal" Wrap="FlexWrap.Wrap" JustifyContent="JustifyContent.Center" Class="rz-shadow-5 shadows rz-text-align-center rz-p-5" Gap="1rem">
+
+@*    <RadzenRow class="rz-text-align-center" Gap="1rem">*@
+        <RadzenColumn Size="12" SizeXS="11" SizeSM="10" SizeMD="9" SizeLG="8" SizeXL="7" SizeXX="6" class="rz-p-5">
+
+            <h4>Celkem +</h4>
+            <h4>@valueTotal W</h4>
+
+            <RadzenRadialGauge Style="width: 100%; height:400px;">
+                <RadzenRadialGaugeScale StartAngle="-150" EndAngle="150" Step="210" Min="-10" Max="4000" TickPosition=GaugeTickPosition.Outside>
+                    <RadzenRadialGaugeScalePointer Value=@valueTotal Length="0.6" ShowValue=@showValue>
+                        <Template Context="pointer">
+                            <h1>
+                                @pointer.Value W
+                            </h1>
+                        </Template>
+                    </RadzenRadialGaugeScalePointer>
+                    <RadzenRadialGaugeScaleRange From="0" To="1000" Fill="green" />
+                    <RadzenRadialGaugeScaleRange From="1001" To="2500" Fill="orange" />
+                    <RadzenRadialGaugeScaleRange From="2501" To="4000" Fill="red" />
+                </RadzenRadialGaugeScale>
+            </RadzenRadialGauge>
+        </RadzenColumn>
+        <RadzenColumn Size="12" SizeXS="11" SizeSM="10" SizeMD="9" SizeLG="8" SizeXL="7" SizeXX="6" class="rz-p-5">
+
+            <h4>Celkem +/-</h4>
+            <h4>@valueTotalPower W</h4>
+            <RadzenRadialGauge Style="width: 100%; height:400px;">
+                <RadzenRadialGaugeScale StartAngle="-150" EndAngle="150" Step="210" Min="-10" Max="4000" TickPosition=GaugeTickPosition.Outside>
+                    <RadzenRadialGaugeScalePointer Value=@valueTotalPower Length="0.6" ShowValue=@showValue>
+                        <Template Context="pointer">
+                            <h1>
+                                @pointer.Value W
+                            </h1>
+                        </Template>
+                    </RadzenRadialGaugeScalePointer>
+                    <RadzenRadialGaugeScaleRange From="0" To="1000" Fill="green" />
+                    <RadzenRadialGaugeScaleRange From="1001" To="2500" Fill="orange" />
+                    <RadzenRadialGaugeScaleRange From="2501" To="4000" Fill="red" />
+                </RadzenRadialGaugeScale>
+            </RadzenRadialGauge>
+        </RadzenColumn>
+
+
+@*    </RadzenRow>*@
+
+
+@*    <RadzenRow class="rz-text-align-center" Gap="1rem">*@
+        <RadzenColumn Size="12" SizeXS="11" SizeSM="10" SizeMD="9" SizeLG="8" SizeXL="7" SizeXX="6" class="rz-p-5">
+       
+            <h4>Faze A</h4>
+            <h4>@valuePhaseA W</h4>
+
+            <RadzenRadialGauge Style="width: 100%; height:400px;">
+                <RadzenRadialGaugeScale StartAngle="-150" EndAngle="150" Step="210" Min="-10" Max="4000" TickPosition=GaugeTickPosition.Outside>
+                    <RadzenRadialGaugeScalePointer Value=@valuePhaseA Length="0.6" ShowValue=@showValue>
+                        <Template Context="pointer">
+                            <h1>
+                                @pointer.Value W
+                            </h1>
+                        </Template>
+                    </RadzenRadialGaugeScalePointer>
+                    <RadzenRadialGaugeScaleRange From="0" To="1000" Fill="green" />
+                    <RadzenRadialGaugeScaleRange From="1001" To="2500" Fill="orange" />
+                    <RadzenRadialGaugeScaleRange From="2501" To="4000" Fill="red" />
+                </RadzenRadialGaugeScale>
+            </RadzenRadialGauge>
+        </RadzenColumn>
+          <RadzenColumn Size="12" SizeXS="11" SizeSM="10" SizeMD="9" SizeLG="8" SizeXL="7" SizeXX="6" class="rz-p-5">
+
+            <h4>Faze B</h4>
+            <h4>@valuePhaseB W</h4>
+            <RadzenRadialGauge Style="width: 100%; height:400px;">
+                <RadzenRadialGaugeScale StartAngle="-150" EndAngle="150" Step="210" Min="-10" Max="4000" TickPosition=GaugeTickPosition.Outside>
+                    <RadzenRadialGaugeScalePointer Value=@valuePhaseB Length="0.6" ShowValue=@showValue>
+                        <Template Context="pointer">
+                            <h1>
+                                @pointer.Value W
+                            </h1>
+                        </Template>
+                    </RadzenRadialGaugeScalePointer>
+                    <RadzenRadialGaugeScaleRange From="0" To="1000" Fill="green" />
+                    <RadzenRadialGaugeScaleRange From="1001" To="2500" Fill="orange" />
+                    <RadzenRadialGaugeScaleRange From="2501" To="4000" Fill="red" />
+                </RadzenRadialGaugeScale>
+            </RadzenRadialGauge>
+        </RadzenColumn>
+        <RadzenColumn Size="12" SizeXS="11" SizeSM="10" SizeMD="9" SizeLG="8" SizeXL="7" SizeXX="6" class="rz-p-5">
+
+            <h4>Faze C</h4>
+            <h4>@valuePhaseC W</h4>
+            <RadzenRadialGauge Style="width: 100%; height:400px;">
+                <RadzenRadialGaugeScale StartAngle="-150" EndAngle="150" Step="210" Min="-10" Max="4000" TickPosition=GaugeTickPosition.Outside>
+                    <RadzenRadialGaugeScalePointer Value=@valuePhaseC Length="0.6" ShowValue=@showValue>
+                        <Template Context="pointer">
+                            <h1>
+                                @pointer.Value W
+                            </h1>
+                        </Template>
+                    </RadzenRadialGaugeScalePointer>
+                    <RadzenRadialGaugeScaleRange From="0" To="1000" Fill="green" />
+                    <RadzenRadialGaugeScaleRange From="1001" To="2500" Fill="orange" />
+                    <RadzenRadialGaugeScaleRange From="2501" To="4000" Fill="red" />
+                </RadzenRadialGaugeScale>
+            </RadzenRadialGauge>
+        </RadzenColumn>
+
+@*    </RadzenRow>*@
+    </RadzenStack>
+    <br>
+   
+
+    <div class="container my-5">
+        <div class="row">
+            <div class="col">
+                <RadzenCard class="w-100 mb-4" Style="display: flex; align-items: center; gap: 0.5rem">
+                    <RadzenCheckBox @bind-Value="@trend" Name="trend"></RadzenCheckBox>
+                    <RadzenLabel Text="Trend" For="trend" Style="margin-right: 1rem;" class="rz-color-danger-dark" />               
+                    <RadzenCheckBox @bind-Value="@mean" Name="mean"></RadzenCheckBox>
+                    <RadzenLabel Text="Prumer" For="mean" Style="margin-right: 1rem;" class="rz-color-info-dark" /> 
+                </RadzenCard>
+                <RadzenChart>
+                    <RadzenLineSeries Smooth="true" Data="@colElectricity" CategoryProperty="SelDateTime" Title="Celkem faze" ValueProperty="SelTotal" RenderingOrder="50">
+                        <RadzenSeriesTrendLine Visible="@trend" Stroke="var(--rz-danger-dark)" LineType="LineType.Dashed" />                      
+                        <RadzenSeriesMeanLine Visible="@mean" Stroke="var(--rz-info-dark)" LineType="LineType.Dotted" />
+                    </RadzenLineSeries>
+
+                    @*   <RadzenLineSeries Smooth="true" Data="@colElectricity" CategoryProperty="SelDateTime" Title="Celkem faze" ValueProperty="SelPowerA" RenderingOrder="50">
+                        <RadzenSeriesTrendLine Visible="@trend" Stroke="var(--rz-danger-dark)" LineType="LineType.Dashed" />                      
+                        <RadzenSeriesMeanLine Visible="@mean" Stroke="var(--rz-info-dark)" LineType="LineType.Dotted" />
+                    </RadzenLineSeries>*@
+
+                    <RadzenValueAxis>
+                        <RadzenGridLines Visible="true" />
+                        <RadzenAxisTitle Text="Spotreba (W)" />
+                    </RadzenValueAxis>
+                    <RadzenCategoryAxis Padding="20" Formatter="@FormatAsTime" />
+                </RadzenChart>
+            </div>
+        </div>
+    </div>
+
+    <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="24" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                Data="@colElectricity" TItem="TblElectricity" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" Order>
+        <Columns>
+            <RadzenDataGridColumn TItem="TblElectricity" Property="SelDateTime" Filterable="false" Title="Den" Frozen="true" Width="auto" TextAlign="TextAlign.Center">
+                <Template>
+                    @{
+                        var value = (context as TblElectricity);
+                        DateTime date = value.SelDateTime;
+                        <div>@date.ToString("dd.MM.yyyy HH:mm:ss")</div>
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+
+            <RadzenDataGridColumn TItem="TblElectricity" Property="SelPowerA" Filterable="false" Title="Faze A" Frozen="true" Width="auto" TextAlign="TextAlign .Center" />
+            <RadzenDataGridColumn TItem="TblElectricity" Property="SelPowerB" Filterable="false" Title="Faze B" Frozen="true" Width="auto" TextAlign="TextAlign.Center" />
+            <RadzenDataGridColumn TItem="TblElectricity" Property="SelPowerC" Filterable="false" Title="Faze C" Frozen="true" Width="auto" TextAlign="TextAlign.Center" />
+
+            <RadzenDataGridColumn TItem="TblElectricity" Property="SelTotal" Filterable="false" Title="Total +/-" Frozen="true" Width="auto" TextAlign="TextAlign.Center" />
+            <RadzenDataGridColumn TItem="TblElectricity" Property="SelTotalPower" Filterable="false" Title="Total +" Frozen="true" Width="auto" TextAlign="TextAlign.Center" />
+        </Columns>
+    </RadzenDataGrid>
+}
+
+@code {
+    IEnumerable<TblElectricity> colElectricity;
+    
+    bool showDataLabels = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        //employees = await OTEService.Get();
+        colElectricity = await IElectricityService.LoadRec();
+        if (colElectricity != null)
+        {
+            colElectricity = colElectricity.OrderByDescending(date => date.SelDateTime);
+
+            valuePhaseA = Convert.ToDouble(colElectricity.First().SelPowerA);
+            valuePhaseB = Convert.ToDouble(colElectricity.First().SelPowerB);
+            valuePhaseC = Convert.ToDouble(colElectricity.First().SelPowerC);
+
+            valueTotal = Convert.ToDouble(colElectricity.First().SelTotal);
+            valueTotalPower = Convert.ToDouble(colElectricity.First().SelTotalPower);
+
+            lastUpdateCEZ = colElectricity.First().SelDateTime;
+        }
+        else
+        {
+            valuePhaseA = 0;
+            valuePhaseB = 0;
+            valuePhaseC = 0;
+            valueTotal = 0;
+            valueTotalPower = 0;
+            lastUpdateCEZ = new DateTime(1983, 12, 10);
+        }
+
+    }
+
+    bool showValue = false;
+    double value = 100;
+
+    double valuePhaseA = 0, valuePhaseB = 0, valuePhaseC = 0, valueTotal = 0, valueTotalPower = 0;
+    DateTime lastUpdateCEZ = new DateTime(1983, 12, 10);
+
+    bool trend = true;
+    bool median = false;
+    bool mean = false;
+    bool mode = false;
+
+    IEnumerable<GaugeTickPosition> tickPositions = Enum.GetValues(typeof(GaugeTickPosition)).Cast<GaugeTickPosition>();
+    GaugeTickPosition tickPosition = GaugeTickPosition.Inside;
+
+    //protected override void OnAfterRender(bool firstRender)
+    //{
+    //    if (firstRender)
+    //        TblElectricity.OrderByDescending("NomeUnidadeSaude");
+    //}
+
+    string FormatAsTime(object value)
+    {
+        if (value != null)
+        {
+            return Convert.ToDateTime(value).ToString("HH:mm");
+        }
+
+        return string.Empty;
+    }
+
+}
