@@ -1,12 +1,13 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq.Expressions;
 using HomeControlBlazor.Services;
 
-namespace HomeControlBlazor.Contollers
+namespace HomeControlBlazor.Controllers
 {
     [DisableRequestSizeLimit]
-    
+    [Authorize]
     public class UploadController : Controller
     {
         private readonly IWebHostEnvironment _environment;

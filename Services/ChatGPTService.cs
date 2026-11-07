@@ -19,18 +19,15 @@ namespace HomeControlBlazor.Services
 
     public class ChatGPTService : IChatGPTService
     {
-        //private OpenAIAPI APIclient;
-        string apiKey = "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";
-       // private string promptText;
-        private string generatedText;
         private readonly HttpClient httpClient;
-        private const string ApiKey = "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"; // Replace with your API key
+        private readonly string _apiKey;
         private const string ApiBaseUrl = "https://api.openai.com/v1/chat/completions";
 
-        public ChatGPTService()
+        public ChatGPTService(IConfiguration configuration)
         {
+            _apiKey = configuration["OpenAI:ApiKey"] ?? throw new InvalidOperationException("OpenAI:ApiKey not configured");
             httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {ApiKey}");
+            httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
         }
 
         //  public async Task<string> GetCompletionAsync()
@@ -110,34 +107,6 @@ namespace HomeControlBlazor.Services
         */
 
 
-        /*
-        public  async Task<string> AskChatGPT(string question)
-        {
-            // This URL is hypothetical and does not actually exist.
-            var url = "https://api.openai.com/v1/chatgpt";
-
-            // Replace with your actual API key.
-            var apiKey = "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";
-
-            using (var client = new HttpClient())
-            {
-                client.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
-
-                var response = await client.GetAsync($"{url}?question={question}");
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var content = await response.Content.ReadAsStringAsync();
-                    var apiResponse = JsonConvert.DeserializeObject<ApiResponse>(content);
-                    return apiResponse.Answer;
-                }
-                else
-                {
-                    return "Error: " + response.StatusCode;
-                }
-            }
-        }
-        */
     }
 
     public class ApiResponse

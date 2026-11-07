@@ -1,12 +1,14 @@
 ﻿using HomeControlBlazor.Models;
 using HomeControlBlazor.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Net.NetworkInformation;
 
 [ApiController]
-[Route("[controller]")] // [controller]/
+[Route("[controller]")]
+[Authorize]
 public class DataController : ControllerBase
 {
     private readonly IJSONService jsonservice;
